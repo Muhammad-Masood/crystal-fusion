@@ -114,7 +114,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              Why Trust CrystanFusion?
+              Why Trust CrystalFusion?
             </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
               Built on cutting-edge blockchain technology to provide unmatched
@@ -182,7 +182,7 @@ export default function HomePage() {
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-6">
                 <Shield className="h-8 w-8 text-blue-400" />
-                <span className="text-2xl font-bold">CrystanFusion</span>
+                <span className="text-2xl font-bold">CrystalFusion</span>
               </div>
               <p className="text-slate-300 mb-6 leading-relaxed">
                 Revolutionizing product verification through blockchain
@@ -193,7 +193,7 @@ export default function HomePage() {
                 <div className="flex items-center space-x-3">
                   <Mail className="h-5 w-5 text-blue-400" />
                   <span className="text-slate-300">
-                    contact@CrystanFusion.com
+                    contact@CrystalFusion.com
                   </span>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -296,7 +296,7 @@ export default function HomePage() {
 
           <div className="border-t border-slate-700 mt-12 pt-8 text-center">
             <p className="text-slate-400">
-              © {new Date().getFullYear()} CrystanFusion. All rights reserved.
+              © {new Date().getFullYear()} CrystalFusion. All rights reserved.
               Powered by blockchain technology.
             </p>
           </div>

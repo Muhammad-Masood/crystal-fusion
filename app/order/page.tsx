@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,102 +7,231 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Shield,
-  Upload,
-  CheckCircle,
-  QrCode,
-  Share2,
-  Copy,
-  Printer,
   ArrowLeft,
+  ArrowRight,
+  Check,
+  CalendarIcon,
+  QrCode,
+  User,
+  Package,
+  Gem,
+  Settings,
   FileText,
-  X,
+  CheckCircle,
+  Copy,
+  Share2,
+  Printer,
 } from "lucide-react";
+import { format } from "date-fns";
 import Link from "next/link";
 
-interface OrderFormData {
-  name: string;
+interface FormData {
+  // Personal Information
+  fullName: string;
   email: string;
-  address: string;
   phone: string;
-  productDetails: string;
-  files: File[];
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
+
+  // Parcel Pickup
+  pickupDate: Date | undefined;
+  pickupTime: "before-noon" | "after-noon" | "";
+
+  // Source Material
+  sourceMaterial: string[];
+  sourceMaterialOther: string;
+  quantity: string;
+
+  // Diamond Specifications
+  caratSizes: { [key: string]: number };
+  cutPreference: string;
+  colorPreference: string;
+  settingPreference: string[];
+
+  // Special Requests
+  specialRequests: string;
+
+  // Terms & Acknowledgment
+  signatureName: string;
+  signatureDate: Date | undefined;
+  termsAccepted: boolean;
 }
 
 interface OrderResult {
+  orderId: string;
   trackingId: string;
   qrCodeData: string;
   timestamp: string;
 }
 
-export default function OrderForm() {
-  const [formData, setFormData] = useState<OrderFormData>({
-    name: "",
-    email: "",
-    address: "",
-    phone: "",
-    productDetails: "",
-    files: [],
-  });
+const initialFormData: FormData = {
+  fullName: "",
+  email: "",
+  phone: "",
+  address: "",
+  city: "",
+  postalCode: "",
+  country: "",
+  pickupDate: undefined,
+  pickupTime: "",
+  sourceMaterial: [],
+  sourceMaterialOther: "",
+  quantity: "",
+  caratSizes: {},
+  cutPreference: "",
+  colorPreference: "",
+  settingPreference: [],
+  specialRequests: "",
+  signatureName: "",
+  signatureDate: undefined,
+  termsAccepted: false,
+};
 
+const steps = [
+  { id: 1, title: "Personal Information", icon: <User className="h-5 w-5" /> },
+  { id: 2, title: "Pickup Preference", icon: <Package className="h-5 w-5" /> },
+  { id: 3, title: "Source Material", icon: <Settings className="h-5 w-5" /> },
+  { id: 4, title: "Diamond Specifications", icon: <Gem className="h-5 w-5" /> },
+  { id: 5, title: "Special Requests", icon: <FileText className="h-5 w-5" /> },
+  {
+    id: 6,
+    title: "Terms & Acknowledgment",
+    icon: <CheckCircle className="h-5 w-5" />,
+  },
+];
+
+const caratOptions = [
+  { size: "0.30", label: "0.30 ct" },
+  { size: "0.40", label: "0.40 ct" },
+  { size: "0.50", label: "0.50 ct" },
+  { size: "0.60", label: "0.60 ct" },
+  { size: "0.70", label: "0.70 ct" },
+  { size: "0.80", label: "0.80 ct" },
+  { size: "0.90", label: "0.90 ct" },
+  { size: "1.00", label: "1.00 ct" },
+];
+
+const countries = [
+  "United States",
+  "Canada",
+  "United Kingdom",
+  "Germany",
+  "France",
+  "Australia",
+  "Netherlands",
+  "Switzerland",
+  "Other",
+];
+
+export default function Order() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
-  const [dragActive, setDragActive] = useState(false);
 
-  const handleInputChange = (field: keyof OrderFormData, value: string) => {
+  const updateFormData = (field: keyof FormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleFileUpload = (files: FileList | null) => {
-    if (files) {
-      const newFiles = Array.from(files).slice(0, 5); // Limit to 5 files
-      setFormData((prev) => ({
-        ...prev,
-        files: [...prev.files, ...newFiles].slice(0, 5),
-      }));
-    }
+  const handleArrayToggle = (field: keyof FormData, value: string) => {
+    const currentArray = formData[field] as string[];
+    const newArray = currentArray.includes(value)
+      ? currentArray.filter((item) => item !== value)
+      : [...currentArray, value];
+    updateFormData(field, newArray);
   };
 
-  const removeFile = (index: number) => {
+  const handleCaratQuantityChange = (size: string, quantity: number) => {
     setFormData((prev) => ({
       ...prev,
-      files: prev.files.filter((_, i) => i !== index),
+      caratSizes: {
+        ...prev.caratSizes,
+        [size]: quantity,
+      },
     }));
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        return !!(
+          formData.fullName &&
+          formData.email &&
+          formData.phone &&
+          formData.address &&
+          formData.city &&
+          formData.postalCode &&
+          formData.country
+        );
+      case 2:
+        return !!(formData.pickupDate && formData.pickupTime);
+      case 3:
+        return !!(formData.sourceMaterial.length > 0 && formData.quantity);
+      case 4:
+        return !!(
+          Object.values(formData.caratSizes).some((qty) => qty > 0) &&
+          formData.cutPreference &&
+          formData.colorPreference &&
+          formData.settingPreference.length > 0
+        );
+      case 5:
+        return true; // Special requests are optional
+      case 6:
+        return !!(
+          formData.signatureName &&
+          formData.signatureDate &&
+          formData.termsAccepted
+        );
+      default:
+        return false;
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    handleFileUpload(e.dataTransfer.files);
+  const nextStep = () => {
+    if (validateStep(currentStep) && currentStep < 6) {
+      setCurrentStep(currentStep + 1);
+    }
   };
 
-  const generateTrackingId = () => {
-    return "TRKVRF-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!validateStep(6)) return;
+
     setIsSubmitting(true);
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    const trackingId = generateTrackingId();
     const result: OrderResult = {
-      trackingId,
-      qrCodeData: `https://verifychain.com/track/${trackingId}`,
+      orderId: "DMD-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      trackingId:
+        "VCH-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      qrCodeData: `https://verifychain.com/track/DMD-${Math.random()
+        .toString(36)
+        .substr(2, 9)
+        .toUpperCase()}`,
       timestamp: new Date().toISOString(),
     };
 
@@ -112,16 +239,20 @@ export default function OrderForm() {
     setIsSubmitting(false);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.log("Error copying:", err);
+    }
   };
 
   const handleShare = async () => {
     if (navigator.share && orderResult) {
       try {
         await navigator.share({
-          title: "VerifyChain Product Tracking",
-          text: `Track your product with ID: ${orderResult.trackingId}`,
+          title: "Diamond Order Confirmation",
+          text: `Your diamond order ${orderResult.orderId} has been confirmed!`,
           url: orderResult.qrCodeData,
         });
       } catch (err) {
@@ -130,79 +261,87 @@ export default function OrderForm() {
     }
   };
 
-  const copyToClipboard = async () => {
-    if (orderResult) {
-      try {
-        await navigator.clipboard.writeText(orderResult.qrCodeData);
-        // You could add a toast notification here
-      } catch (err) {
-        console.log("Error copying:", err);
-      }
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      email: "",
-      address: "",
-      phone: "",
-      productDetails: "",
-      files: [],
-    });
-    setOrderResult(null);
-  };
-
+  // Confirmation Screen
   if (orderResult) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
               <CheckCircle className="h-16 w-16 text-green-500" />
             </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Order Submitted Successfully!
+              Order Confirmed!
             </h1>
             <p className="text-slate-600">
-              Your product verification has been initiated
+              Your diamond creation order has been successfully submitted
             </p>
           </div>
 
-          {/* QR Code Card */}
-          <Card className="border-0 shadow-xl bg-white mb-8 print:shadow-none">
+          <Card className="border-0 shadow-xl bg-white mb-8">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-2xl text-slate-900">
-                Your Tracking QR Code
+                Your Order Details
               </CardTitle>
-              <p className="text-slate-600">
-                Scan or share this QR code to track your product
-              </p>
             </CardHeader>
             <CardContent className="text-center">
-              {/* QR Code Display */}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <Label className="text-sm font-medium text-slate-600">
+                    Order ID
+                  </Label>
+                  <div className="flex items-center justify-center space-x-2 mt-1">
+                    <Badge
+                      variant="secondary"
+                      className="bg-blue-100 text-blue-800 text-lg px-4 py-2"
+                    >
+                      {orderResult.orderId}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(orderResult.orderId)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-slate-600">
+                    Tracking ID
+                  </Label>
+                  <div className="flex items-center justify-center space-x-2 mt-1">
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-800 text-lg px-4 py-2"
+                    >
+                      {orderResult.trackingId}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(orderResult.trackingId)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white p-8 rounded-lg border-2 border-dashed border-slate-200 mb-6 inline-block">
                 <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <QrCode className="h-32 w-32 text-slate-400" />
                 </div>
-                <div className="text-center">
-                  <Badge
-                    variant="secondary"
-                    className="bg-blue-100 text-blue-800 mb-2"
-                  >
-                    {orderResult.trackingId}
-                  </Badge>
-                  <p className="text-sm text-slate-500 break-all">
-                    {orderResult.qrCodeData}
-                  </p>
-                </div>
+                <p className="text-sm text-slate-600">
+                  Scan to track your diamond creation
+                </p>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex flex-wrap justify-center gap-3 mb-6">
                 <Button
-                  onClick={handlePrint}
+                  onClick={() => window.print()}
                   variant="outline"
                   className="border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
                 >
@@ -217,52 +356,39 @@ export default function OrderForm() {
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </Button>
-                <Button
-                  onClick={copyToClipboard}
-                  variant="outline"
-                  className="border-slate-600 text-slate-600 hover:bg-slate-50 bg-transparent"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Link
-                </Button>
               </div>
 
-              {/* Instructions */}
               <div className="bg-blue-50 p-6 rounded-lg text-left">
                 <h3 className="font-semibold text-slate-900 mb-3">
-                  How to use your QR code:
+                  What happens next?
                 </h3>
                 <ul className="space-y-2 text-sm text-slate-600">
                   <li className="flex items-start">
                     <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                    Save or print this QR code for your records
+                    We'll send you a shipping kit for your source material
                   </li>
                   <li className="flex items-start">
                     <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                    Share with others to allow them to track the product
+                    Your material will be processed and verified on the
+                    blockchain
                   </li>
                   <li className="flex items-start">
                     <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                    Scan with any QR code reader to access tracking information
+                    Diamond creation typically takes 8-12 weeks
+                  </li>
+                  <li className="flex items-start">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                    Track progress anytime using your QR code or tracking ID
                   </li>
                 </ul>
               </div>
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              onClick={resetForm}
-              variant="outline"
-              className="border-slate-300 bg-transparent"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Submit Another Order
-            </Button>
+          <div className="text-center">
             <Link href="/">
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-                Back to Home
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                Return to Home
               </Button>
             </Link>
           </div>
@@ -272,8 +398,8 @@ export default function OrderForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <Link
@@ -287,189 +413,702 @@ export default function OrderForm() {
             <Shield className="h-12 w-12 text-blue-600" />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Submit Your Order
+            Diamond Creation Order
           </h1>
           <p className="text-slate-600">
-            Fill out the form below to start product verification
+            Transform your precious memories into certified diamonds
           </p>
         </div>
 
-        {/* Order Form */}
-        <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
+        {/* Progress Indicator */}
+        <Card className="border-0 shadow-sm bg-white mb-8">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              {steps.map((step, index) => (
+                <div key={step.id} className="flex items-center">
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                        currentStep >= step.id
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "bg-white border-slate-300 text-slate-400"
+                      }`}
+                    >
+                      {currentStep > step.id ? (
+                        <Check className="h-5 w-5" />
+                      ) : (
+                        step.icon
+                      )}
+                    </div>
+                    <span
+                      className={`text-xs mt-2 text-center max-w-20 ${
+                        currentStep >= step.id
+                          ? "text-blue-600 font-medium"
+                          : "text-slate-500"
+                      }`}
+                    >
+                      {step.title}
+                    </span>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div
+                      className={`flex-1 h-0.5 mx-4 ${
+                        currentStep > step.id ? "bg-blue-600" : "bg-slate-200"
+                      }`}
+                    ></div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Form Steps */}
+        <Card className="border-0 shadow-xl bg-white">
           <CardHeader>
             <CardTitle className="text-2xl text-slate-900">
-              Order Information
+              {steps[currentStep - 1].title}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Personal Information */}
-              <div className="grid md:grid-cols-2 gap-4">
+          <CardContent className="p-6">
+            {/* Step 1: Personal Information */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="fullName"
+                      className="text-slate-700 font-medium"
+                    >
+                      Full Name *
+                    </Label>
+                    <Input
+                      id="fullName"
+                      value={formData.fullName}
+                      onChange={(e) =>
+                        updateFormData("fullName", e.target.value)
+                      }
+                      placeholder="Enter your full name"
+                      className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="email"
+                      className="text-slate-700 font-medium"
+                    >
+                      Email Address *
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => updateFormData("email", e.target.value)}
+                      placeholder="Enter your email"
+                      className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-700 font-medium">
-                    Full Name *
+                  <Label htmlFor="phone" className="text-slate-700 font-medium">
+                    Phone Number *
                   </Label>
                   <Input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="Enter your full name"
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => updateFormData("phone", e.target.value)}
+                    placeholder="Enter your phone number"
                     className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
-                    required
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-700 font-medium">
-                    Email Address *
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="Enter your email"
-                    className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address" className="text-slate-700 font-medium">
-                  Shipping Address *
-                </Label>
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="Enter your complete shipping address"
-                  className="border-slate-300 focus:border-blue-500 focus:ring-blue-500 min-h-[80px]"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-slate-700 font-medium">
-                  Phone Number *
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  placeholder="Enter your phone number"
-                  className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label
-                  htmlFor="productDetails"
-                  className="text-slate-700 font-medium"
-                >
-                  Product Details *
-                </Label>
-                <Textarea
-                  id="productDetails"
-                  value={formData.productDetails}
-                  onChange={(e) =>
-                    handleInputChange("productDetails", e.target.value)
-                  }
-                  placeholder="Describe your product (brand, model, specifications, etc.)"
-                  className="border-slate-300 focus:border-blue-500 focus:ring-blue-500 min-h-[100px]"
-                  required
-                />
-              </div>
-
-              {/* File Upload */}
-              {/* <div className="space-y-2">
-                <Label className="text-slate-700 font-medium">Upload Files</Label>
-                <p className="text-sm text-slate-500 mb-3">
-                  Upload proof of ownership, product images, or receipts (Max 5 files)
-                </p>
-
-                <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                    dragActive
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-slate-300 hover:border-blue-400 hover:bg-slate-50"
-                  }`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                >
-                  <Upload className="h-8 w-8 text-slate-400 mx-auto mb-3" />
-                  <p className="text-slate-600 mb-2">Drag and drop files here, or</p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-                    onClick={() => document.getElementById("file-upload")?.click()}
+                  <Label
+                    htmlFor="address"
+                    className="text-slate-700 font-medium"
                   >
-                    Browse Files
-                  </Button>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf,.doc,.docx"
-                    onChange={(e) => handleFileUpload(e.target.files)}
-                    className="hidden"
+                    Address *
+                  </Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => updateFormData("address", e.target.value)}
+                    placeholder="Enter your street address"
+                    className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
                   />
-                </div> */}
+                </div>
 
-              {/* Uploaded Files */}
-              {/* {formData.files.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <p className="text-sm font-medium text-slate-700">Uploaded Files:</p>
-                    {formData.files.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between bg-slate-50 p-3 rounded-lg">
-                        <div className="flex items-center">
-                          <FileText className="h-4 w-4 text-slate-500 mr-2" />
-                          <span className="text-sm text-slate-700 truncate">{file.name}</span>
-                          <span className="text-xs text-slate-500 ml-2">
-                            ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                          </span>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="city"
+                      className="text-slate-700 font-medium"
+                    >
+                      City *
+                    </Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => updateFormData("city", e.target.value)}
+                      placeholder="City"
+                      className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="postalCode"
+                      className="text-slate-700 font-medium"
+                    >
+                      Postal Code *
+                    </Label>
+                    <Input
+                      id="postalCode"
+                      value={formData.postalCode}
+                      onChange={(e) =>
+                        updateFormData("postalCode", e.target.value)
+                      }
+                      placeholder="Postal Code"
+                      className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="country"
+                      className="text-slate-700 font-medium"
+                    >
+                      Country *
+                    </Label>
+                    <Select
+                      value={formData.country}
+                      onValueChange={(value) =>
+                        updateFormData("country", value)
+                      }
+                    >
+                      <SelectTrigger className="border-slate-300 focus:border-blue-500 focus:ring-blue-500">
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Parcel Pickup Preference */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label className="text-slate-700 font-medium">
+                    Preferred Pickup Date *
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-start text-left font-normal border-slate-300 ${
+                          !formData.pickupDate && "text-slate-500"
+                        }`}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.pickupDate
+                          ? format(formData.pickupDate, "PPP")
+                          : "Select pickup date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={formData.pickupDate}
+                        onSelect={(date) => updateFormData("pickupDate", date)}
+                        initialFocus
+                        disabled={(date) => date < new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-slate-700 font-medium">
+                    Preferred Time *
+                  </Label>
+                  <RadioGroup
+                    value={formData.pickupTime}
+                    onValueChange={(value) =>
+                      updateFormData("pickupTime", value)
+                    }
+                    className="space-y-3"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="before-noon" id="before-noon" />
+                      <Label
+                        htmlFor="before-noon"
+                        className="text-slate-700 cursor-pointer"
+                      >
+                        Before Noon (8:00 AM - 12:00 PM)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="after-noon" id="after-noon" />
+                      <Label
+                        htmlFor="after-noon"
+                        className="text-slate-700 cursor-pointer"
+                      >
+                        After Noon (12:00 PM - 6:00 PM)
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-slate-900 mb-2">
+                    Pickup Information
+                  </h4>
+                  <p className="text-sm text-slate-600">
+                    We'll send you a secure shipping kit with detailed
+                    instructions. Our courier will collect your source material
+                    at the specified time and date.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Source Material */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-slate-700 font-medium">
+                    Source Material Type *
+                  </Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {["Human", "Animal", "Ashes", "Hair"].map((material) => (
+                      <div
+                        key={material}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={material}
+                          checked={formData.sourceMaterial.includes(material)}
+                          onCheckedChange={() =>
+                            handleArrayToggle("sourceMaterial", material)
+                          }
+                        />
+                        <Label
+                          htmlFor={material}
+                          className="text-slate-700 cursor-pointer"
                         >
-                          <X className="h-4 w-4" />
-                        </Button>
+                          {material}
+                        </Label>
+                      </div>
+                    ))}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="other"
+                        checked={formData.sourceMaterial.includes("Other")}
+                        onCheckedChange={() =>
+                          handleArrayToggle("sourceMaterial", "Other")
+                        }
+                      />
+                      <Label
+                        htmlFor="other"
+                        className="text-slate-700 cursor-pointer"
+                      >
+                        Other
+                      </Label>
+                    </div>
+                  </div>
+                  {formData.sourceMaterial.includes("Other") && (
+                    <Input
+                      placeholder="Please specify..."
+                      value={formData.sourceMaterialOther}
+                      onChange={(e) =>
+                        updateFormData("sourceMaterialOther", e.target.value)
+                      }
+                      className="mt-2 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="quantity"
+                    className="text-slate-700 font-medium"
+                  >
+                    Quantity (grams) *
+                  </Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={formData.quantity}
+                    onChange={(e) => updateFormData("quantity", e.target.value)}
+                    placeholder="Enter quantity in grams"
+                    className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                  <p className="text-sm text-slate-500">
+                    Minimum 5 grams required for diamond creation
+                  </p>
+                </div>
+
+                <div className="bg-amber-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-slate-900 mb-2">
+                    Important Notes
+                  </h4>
+                  <ul className="text-sm text-slate-600 space-y-1">
+                    <li>
+                      • Source material will be handled with utmost care and
+                      respect
+                    </li>
+                    <li>
+                      • All materials are processed in a sterile, controlled
+                      environment
+                    </li>
+                    <li>
+                      • Excess material will be returned to you upon request
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Diamond Specifications */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-slate-700 font-medium">
+                    Diamond Carat Sizes *
+                  </Label>
+                  <p className="text-sm text-slate-500">
+                    Select quantity for each carat size
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {caratOptions.map((option) => (
+                      <div key={option.size} className="space-y-2">
+                        <Label className="text-sm font-medium text-slate-700">
+                          {option.label}
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="10"
+                          value={formData.caratSizes[option.size] || 0}
+                          onChange={(e) =>
+                            handleCaratQuantityChange(
+                              option.size,
+                              Number.parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                        />
                       </div>
                     ))}
                   </div>
-                )} */}
-              {/* </div> */}
+                </div>
 
-              {/* Submit Button */}
+                <div className="space-y-3">
+                  <Label className="text-slate-700 font-medium">
+                    Cut Preference *
+                  </Label>
+                  <RadioGroup
+                    value={formData.cutPreference}
+                    onValueChange={(value) =>
+                      updateFormData("cutPreference", value)
+                    }
+                    className="grid grid-cols-2 md:grid-cols-4 gap-3"
+                  >
+                    {[
+                      "Round",
+                      "Cushion",
+                      "Heart",
+                      "Oval",
+                      "Pear",
+                      "Emerald",
+                      "Other",
+                    ].map((cut) => (
+                      <div key={cut} className="flex items-center space-x-2">
+                        <RadioGroupItem value={cut} id={`cut-${cut}`} />
+                        <Label
+                          htmlFor={`cut-${cut}`}
+                          className="text-slate-700 cursor-pointer"
+                        >
+                          {cut}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-slate-700 font-medium">
+                    Color Preference *
+                  </Label>
+                  <RadioGroup
+                    value={formData.colorPreference}
+                    onValueChange={(value) =>
+                      updateFormData("colorPreference", value)
+                    }
+                    className="grid grid-cols-2 md:grid-cols-3 gap-3"
+                  >
+                    {[
+                      "Colorless",
+                      "Blue",
+                      "Pink",
+                      "Yellow",
+                      "Green",
+                      "Black",
+                    ].map((color) => (
+                      <div key={color} className="flex items-center space-x-2">
+                        <RadioGroupItem value={color} id={`color-${color}`} />
+                        <Label
+                          htmlFor={`color-${color}`}
+                          className="text-slate-700 cursor-pointer"
+                        >
+                          {color}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-slate-700 font-medium">
+                    Setting Preference *
+                  </Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {["Ring", "Pendant", "Earrings", "Loose Diamond"].map(
+                      (setting) => (
+                        <div
+                          key={setting}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={`setting-${setting}`}
+                            checked={formData.settingPreference.includes(
+                              setting
+                            )}
+                            onCheckedChange={() =>
+                              handleArrayToggle("settingPreference", setting)
+                            }
+                          />
+                          <Label
+                            htmlFor={`setting-${setting}`}
+                            className="text-slate-700 cursor-pointer"
+                          >
+                            {setting}
+                          </Label>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Special Requests */}
+            {currentStep === 5 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="specialRequests"
+                    className="text-slate-700 font-medium"
+                  >
+                    Special Instructions or Requests
+                  </Label>
+                  <Textarea
+                    id="specialRequests"
+                    value={formData.specialRequests}
+                    onChange={(e) =>
+                      updateFormData("specialRequests", e.target.value)
+                    }
+                    placeholder="Enter any special instructions, engraving requests, or other customizations..."
+                    className="border-slate-300 focus:border-blue-500 focus:ring-blue-500 min-h-[120px]"
+                  />
+                  <p className="text-sm text-slate-500">
+                    Optional: Any specific requests for your diamond creation
+                  </p>
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-slate-900 mb-2">
+                    Popular Customizations
+                  </h4>
+                  <ul className="text-sm text-slate-600 space-y-1">
+                    <li>• Custom engraving on jewelry settings</li>
+                    <li>
+                      • Specific metal preferences (gold, platinum, silver)
+                    </li>
+                    <li>• Memorial inscription or dates</li>
+                    <li>• Special packaging or presentation requests</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Step 6: Terms & Acknowledgment */}
+            {currentStep === 6 && (
+              <div className="space-y-6">
+                <div className="bg-slate-50 p-6 rounded-lg max-h-64 overflow-y-auto">
+                  <h4 className="font-semibold text-slate-900 mb-3">
+                    Terms and Conditions
+                  </h4>
+                  <div className="text-sm text-slate-700 space-y-2">
+                    <p>
+                      By submitting this order, you acknowledge and agree to the
+                      following terms and conditions:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>
+                        You confirm that you have the legal right to use the
+                        provided source material for diamond creation.
+                      </li>
+                      <li>
+                        The diamond creation process typically takes 8-12 weeks
+                        from receipt of source material.
+                      </li>
+                      <li>
+                        All diamonds created will be certified and recorded on
+                        the blockchain for authenticity.
+                      </li>
+                      <li>
+                        Source material handling will be conducted with the
+                        highest standards of care and respect.
+                      </li>
+                      <li>
+                        Pricing is final upon order confirmation and payment
+                        processing will begin immediately.
+                      </li>
+                      <li>
+                        You understand that the diamond creation process is
+                        irreversible once begun.
+                      </li>
+                      <li>
+                        All personal information will be handled according to
+                        our privacy policy and data protection standards.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="signatureName"
+                      className="text-slate-700 font-medium"
+                    >
+                      Digital Signature (Full Name) *
+                    </Label>
+                    <Input
+                      id="signatureName"
+                      value={formData.signatureName}
+                      onChange={(e) =>
+                        updateFormData("signatureName", e.target.value)
+                      }
+                      placeholder="Type your full name as signature"
+                      className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-700 font-medium">
+                      Signature Date *
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={`w-full justify-start text-left font-normal border-slate-300 ${
+                            !formData.signatureDate && "text-slate-500"
+                          }`}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.signatureDate
+                            ? format(formData.signatureDate, "PPP")
+                            : "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={formData.signatureDate}
+                          onSelect={(date) =>
+                            updateFormData("signatureDate", date)
+                          }
+                          initialFocus
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="termsAccepted"
+                    checked={formData.termsAccepted}
+                    onCheckedChange={(checked) =>
+                      updateFormData("termsAccepted", checked)
+                    }
+                  />
+                  <Label
+                    htmlFor="termsAccepted"
+                    className="text-slate-700 cursor-pointer"
+                  >
+                    I have read, understood, and agree to the terms and
+                    conditions *
+                  </Label>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between pt-6 border-t border-slate-200">
               <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg"
+                onClick={prevStep}
+                disabled={currentStep === 1}
+                variant="outline"
+                className="bg-transparent border-slate-300"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Processing Order...
-                  </>
-                ) : (
-                  "Submit Order"
-                )}
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Previous
               </Button>
 
-              <p className="text-xs text-slate-500 text-center">
-                By submitting this form, you agree to our Terms of Service and
-                Privacy Policy.
-              </p>
-            </form>
+              {currentStep < 6 ? (
+                <Button
+                  onClick={nextStep}
+                  disabled={!validateStep(currentStep)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!validateStep(6) || isSubmitting}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing Order...
+                    </>
+                  ) : (
+                    <>
+                      Submit Order
+                      <CheckCircle className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
