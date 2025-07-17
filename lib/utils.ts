@@ -8,7 +8,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const arbitrumSepoliaRpc = "https://arbitrum-sepolia-rpc.publicnode.com";
+// const arbitrumSepoliaRpc = "https://arbitrum-sepolia-rpc.publicnode.com";
+const arbitrumSepoliaRpc = "https://arbitrum-sepolia.gateway.tenderly.co";
+
 export const provider = new ethers.JsonRpcProvider(arbitrumSepoliaRpc);
 
 export const client = createThirdwebClient({

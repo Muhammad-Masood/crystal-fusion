@@ -76,6 +76,8 @@ import {
   useActiveWallet,
   useSendTransaction,
 } from "thirdweb/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 // Mock data
 const overviewMetrics: OverviewMetric[] = [
@@ -113,7 +115,10 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("today");
+  const [deletingOrder, setDeletingOrder] = useState<number | null>(null);
   const activeAccount = useActiveAccount();
+  const router = useRouter();
+  const { mutate: sendTx, data: transactionResult } = useSendTransaction();
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -126,27 +131,31 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
 
   const handleCancelOrder = async (orderId: number) => {
     try {
-      // await
+      setDeletingOrder(orderId);
+      console.log(deletingOrder)
+      const orderIndex = orders.findIndex((order) => order.id === orderId);
       if (!activeAccount) {
         alert("Please connect your wallet");
         return;
       }
-
       const contract = getContract({
         address: contractAddress,
         chain: arbitrumSepolia,
         client: client,
       });
-      const { mutate: sendTx, data: transactionResult } = useSendTransaction();
 
       const transaction = prepareContractCall({
         contract,
         method: "function removeOrders(uint256 index)",
-        params: [BigInt(orderId)],
+        params: [BigInt(orderIndex)],
       });
       sendTx(transaction);
+      console.log("Transaction result: ", transactionResult);
+      setDeletingOrder(null);
+      router.refresh();
     } catch (error) {
       console.log("Error storing order form data: ", error);
+      setDeletingOrder(null);
       return null;
     }
   };
@@ -390,6 +399,7 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
                                     variant="ghost"
                                     size="sm"
                                     className="h-8 w-8 p-0"
+                                    disabled={deletingOrder == order.id}
                                   >
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
@@ -405,8 +415,13 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
                                     View Details
                                   </DropdownMenuItem>
                                   <DropdownMenuItem className="cursor-pointer">
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit Order
+                                    <Link
+                                      href={`/admin/shipments`}
+                                      className="flex"
+                                    >
+                                      <Edit className="h-4 w-4 mr-4" />
+                                      Edit Order
+                                    </Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem className="cursor-pointer">
                                     <Package className="h-4 w-4 mr-2" />

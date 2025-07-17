@@ -56,6 +56,9 @@ import {
   Download,
 } from "lucide-react";
 import Link from "next/link";
+import { Order } from "@/lib/interfaces";
+import { QRCodeCanvas } from "qrcode.react";
+import { contractAddress } from "@/lib/contract";
 
 interface ShipmentStage {
   id: string;
@@ -81,112 +84,57 @@ interface ShipmentOrder {
   stages: ShipmentStage[];
 }
 
-export function ShipmentManagement() {
+const stages: ShipmentStage[] = [
+  {
+    id: "stage-1",
+    title: "To the Netherlands (Customer Pickup)",
+    description: "Package shipped from customer to Netherlands facility",
+    status: "completed",
+    icon: <Plane className="h-4 w-4" />,
+    fedexHash: "0x1a2b3c4d5e6f7890abcdef1234567890abcdef12",
+    trackingHash: "FX123456789NL",
+    requiresBlockchain: true,
+    actions: ["Send Email Confirmation"],
+  },
+  {
+    id: "stage-2",
+    title: "From Netherlands to Production Unit 1",
+    description: "Package shipped to first production facility",
+    status: "in-progress",
+    icon: <Factory className="h-4 w-4" />,
+    fedexHash: "",
+    trackingHash: "",
+    requiresBlockchain: true,
+    actions: ["Notify Production Unit 1"],
+  },
+  {
+    id: "stage-3",
+    title: "From Production Unit 1 to Production Unit 2",
+    description: "Internal transfer between production units",
+    status: "pending",
+    icon: <Truck className="h-4 w-4" />,
+    requiresBlockchain: false,
+    actions: ["Mark as Sent"],
+  },
+  {
+    id: "stage-4",
+    title: "From Production Unit 2 to Belgium (Final Shipment)",
+    description: "Final delivery to customer in Belgium",
+    status: "pending",
+    icon: <MapPin className="h-4 w-4" />,
+    requiresBlockchain: true,
+    actions: ["Record on Blockchain"],
+  },
+];
+export function ShipmentManagement({
+  shipmentOrders,
+}: {
+  shipmentOrders: Order[];
+}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
-
-  // Mock data
-  const shipmentOrders: ShipmentOrder[] = [
-    {
-      id: "SHP-001",
-      orderId: "ORD-001",
-      customerName: "John Smith",
-      productName: "Premium Wireless Headphones",
-      dateReceived: "2024-01-15",
-      currentStage: 2,
-      qrCode: "VCH-ABC123XYZ",
-      stages: [
-        {
-          id: "stage-1",
-          title: "To the Netherlands (Customer Pickup)",
-          description: "Package shipped from customer to Netherlands facility",
-          status: "completed",
-          icon: <Plane className="h-4 w-4" />,
-          fedexHash: "0x1a2b3c4d5e6f7890abcdef1234567890abcdef12",
-          trackingHash: "FX123456789NL",
-          requiresBlockchain: true,
-          actions: ["Send Email Confirmation"],
-        },
-        {
-          id: "stage-2",
-          title: "From Netherlands to Production Unit 1",
-          description: "Package shipped to first production facility",
-          status: "in-progress",
-          icon: <Factory className="h-4 w-4" />,
-          fedexHash: "",
-          trackingHash: "",
-          requiresBlockchain: true,
-          actions: ["Notify Production Unit 1"],
-        },
-        {
-          id: "stage-3",
-          title: "From Production Unit 1 to Production Unit 2",
-          description: "Internal transfer between production units",
-          status: "pending",
-          icon: <Truck className="h-4 w-4" />,
-          requiresBlockchain: false,
-          actions: ["Mark as Sent"],
-        },
-        {
-          id: "stage-4",
-          title: "From Production Unit 2 to Belgium (Final Shipment)",
-          description: "Final delivery to customer in Belgium",
-          status: "pending",
-          icon: <MapPin className="h-4 w-4" />,
-          requiresBlockchain: true,
-          actions: ["Record on Blockchain"],
-        },
-      ],
-    },
-    {
-      id: "SHP-002",
-      orderId: "ORD-002",
-      customerName: "Sarah Johnson",
-      productName: "Smart Watch Pro",
-      dateReceived: "2024-01-16",
-      currentStage: 1,
-      qrCode: "VCH-DEF456ABC",
-      stages: [
-        {
-          id: "stage-1",
-          title: "To the Netherlands (Customer Pickup)",
-          description: "Package shipped from customer to Netherlands facility",
-          status: "in-progress",
-          icon: <Plane className="h-4 w-4" />,
-          requiresBlockchain: true,
-          actions: ["Send Email Confirmation"],
-        },
-        {
-          id: "stage-2",
-          title: "From Netherlands to Production Unit 1",
-          description: "Package shipped to first production facility",
-          status: "pending",
-          icon: <Factory className="h-4 w-4" />,
-          requiresBlockchain: true,
-          actions: ["Notify Production Unit 1"],
-        },
-        {
-          id: "stage-3",
-          title: "From Production Unit 1 to Production Unit 2",
-          description: "Internal transfer between production units",
-          status: "pending",
-          icon: <Truck className="h-4 w-4" />,
-          requiresBlockchain: false,
-          actions: ["Mark as Sent"],
-        },
-        {
-          id: "stage-4",
-          title: "From Production Unit 2 to Belgium (Final Shipment)",
-          description: "Final delivery to customer in Belgium",
-          status: "pending",
-          icon: <MapPin className="h-4 w-4" />,
-          requiresBlockchain: true,
-          actions: ["Record on Blockchain"],
-        },
-      ],
-    },
-  ];
+  const [showQrModal, setShowQrModal] = useState(false);
 
   const toggleOrderExpansion = (orderId: string) => {
     setExpandedOrders((prev) =>
@@ -227,13 +175,13 @@ export function ShipmentManagement() {
 
   const filteredOrders = shipmentOrders.filter((order) => {
     const matchesSearch =
-      order.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.productName.toLowerCase().includes(searchQuery.toLowerCase());
+      order.id.toString() == searchQuery ||
+      order.qrHash.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.finalDeliveryHash.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStage =
-      stageFilter === "all" || order.currentStage.toString() === stageFilter;
-    return matchesSearch && matchesStage;
+    // const matchesStage =
+    //   stageFilter === "all" || order.currentStage.toString() === stageFilter;
+    return matchesSearch;
   });
 
   return (
@@ -322,7 +270,7 @@ export function ShipmentManagement() {
                     />
                   </div>
                 </div>
-                <div className="flex gap-2">
+                {/* <div className="flex gap-2">
                   <Select value={stageFilter} onValueChange={setStageFilter}>
                     <SelectTrigger className="w-48 border-slate-300">
                       <SelectValue placeholder="Filter by Stage" />
@@ -342,7 +290,7 @@ export function ShipmentManagement() {
                   >
                     <Filter className="h-4 w-4" />
                   </Button>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -358,19 +306,22 @@ export function ShipmentManagement() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <CardTitle className="text-lg font-semibold text-slate-900">
-                            {order.orderId} - {order.customerName}
+                            Order ID - {order.id}
                           </CardTitle>
-                          {getStatusBadge(
+                          {/* {getStatusBadge(
                             order.stages[order.currentStage - 1]?.status ||
                               "pending"
-                          )}
+                          )} */}
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-slate-600">
-                          <span>{order.productName}</span>
+                          {/* <span>{order.productName}</span> */}
                           <span className="hidden sm:inline">•</span>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            Received: {order.dateReceived}
+                            Date:{" "}
+                            {new Date(
+                              order.timestamp * 1000
+                            ).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
@@ -379,17 +330,41 @@ export function ShipmentManagement() {
                           variant="outline"
                           size="sm"
                           className="bg-transparent"
+                          onClick={() => setShowQrModal(true)}
                         >
                           <QrCode className="h-4 w-4 mr-2" />
                           View QR
                         </Button>
+                        {showQrModal && (
+                          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                            <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg relative">
+                              <button
+                                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                                onClick={() => setShowQrModal(false)}
+                              >
+                                ×
+                              </button>
+                              <h3 className="text-lg font-semibold text-slate-800 mb-4 text-center">
+                                Scan QR Code
+                              </h3>
+                              <div className="flex justify-center">
+                                <QRCodeCanvas
+                                  value={`https://sepolia.arbiscan.io/address/${contractAddress}`}
+                                  size={200}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => toggleOrderExpansion(order.id)}
+                          onClick={() =>
+                            toggleOrderExpansion(order.id.toString())
+                          }
                           className="p-2"
                         >
-                          {expandedOrders.includes(order.id) ? (
+                          {expandedOrders.includes(order.id.toString()) ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
                             <ChevronRight className="h-4 w-4" />
@@ -399,7 +374,7 @@ export function ShipmentManagement() {
                     </div>
 
                     {/* Progress Timeline */}
-                    <div className="mt-4">
+                    {/* <div className="mt-4">
                       <div className="flex items-center justify-between relative">
                         <div className="absolute top-5 left-0 right-0 h-0.5 bg-slate-200"></div>
                         {order.stages.map((stage, index) => (
@@ -428,15 +403,17 @@ export function ShipmentManagement() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </div> */}
                   </CardHeader>
 
                   {/* Expandable Content */}
-                  <Collapsible open={expandedOrders.includes(order.id)}>
+                  <Collapsible
+                    open={expandedOrders.includes(order.id.toString())}
+                  >
                     <CollapsibleContent>
                       <CardContent className="pt-0">
                         <div className="space-y-6">
-                          {order.stages.map((stage, index) => (
+                          {stages.map((stage, index) => (
                             <Card
                               key={stage.id}
                               className="border border-slate-200"
@@ -479,8 +456,9 @@ export function ShipmentManagement() {
                                         <div className="flex gap-2">
                                           <Input
                                             placeholder="Paste FedEx hash..."
-                                            value={stage.fedexHash || ""}
+                                            // value={stage.fedexHash || ""}
                                             className="font-mono text-sm"
+                                            // onChange={(e) => setInputValue(e.target.value)}
                                           />
                                           <Button variant="outline" size="sm">
                                             <Upload className="h-4 w-4" />
@@ -493,7 +471,7 @@ export function ShipmentManagement() {
                                         </Label>
                                         <Input
                                           placeholder="Enter tracking hash..."
-                                          value={stage.trackingHash || ""}
+                                          // value={stage.trackingHash || ""}
                                           className="font-mono text-sm"
                                         />
                                       </div>
