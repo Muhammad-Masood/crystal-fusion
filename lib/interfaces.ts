@@ -1,0 +1,64 @@
+export interface Order {
+  id: number;
+  qrHash: string;
+  CshippingHash: string;
+  CFshippingHash: string;
+  shippingOneHash: string;
+  shippingTwoHash: string;
+  analysisHASH: string;
+  certificateHash: string;
+  finalDeliveryHash: string;
+  timestamp: number;
+}
+
+export interface OverviewMetric {
+  title: string;
+  value: string;
+  //   change: string;
+  //   trend: "up" | "down" | "neutral";
+  icon: React.ReactNode;
+}
+
+export interface OrderFormData {
+  orderId: string;
+  // Personal Information
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
+
+  // Parcel Pickup
+  pickupDate: Date | undefined;
+  pickupTime: "before-noon" | "after-noon" | "";
+
+  // Source Material
+  sourceMaterial: string[];
+  sourceMaterialOther: string;
+  quantity: string;
+
+  // Diamond Specifications
+  caratSizes: { [key: string]: number };
+  cutPreference: string;
+  colorPreference: string;
+  settingPreference: string[];
+
+  // Special Requests
+  specialRequests: string;
+
+  // Terms & Acknowledgment
+  signatureName: string;
+  signatureDate: Date | undefined;
+  termsAccepted: boolean;
+
+  creationTime: string;
+}
+
+export interface OrderResult {
+  orderId: string;
+  qrCodeData: string;
+  timestamp: string;
+  hash: string
+}

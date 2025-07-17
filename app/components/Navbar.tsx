@@ -4,9 +4,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Shield, Menu, X } from "lucide-react";
 import Link from "next/link";
+import { ConnectButton } from "thirdweb/react";
+import { arbitrumSepolia } from "thirdweb/chains";
+import { client } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 export const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathName = usePathname();
 
   return (
     <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -52,6 +57,8 @@ export const Navbar = () => {
             >
               Login
             </Button>
+
+            {pathName.startsWith("/admin") && <ConnectButton client={client} chain={arbitrumSepolia} />}
           </div>
 
           {/* Mobile Menu Toggle */}
