@@ -11,6 +11,7 @@ export const addRecords = async (formData: OrderFormData) => {
     const qrHash = ethers.keccak256(ethers.toUtf8Bytes(formDataString));
     console.log("QR Hash: ", qrHash);
     const signer = new ethers.Wallet(process.env.OWNER_PRIVATE_KEY!, provider);
+    console.log("Signer: ", signer);
     const contract = new ethers.Contract(contractAddress, contractABI, signer);
     const contractResult = await contract.addRecords(qrHash);
     console.log("Contract result: ", contractResult);

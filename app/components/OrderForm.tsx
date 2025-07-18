@@ -209,6 +209,7 @@ export default function OrderForm() {
       setIsSubmitting(false);
     } catch (error) {
       console.log("Error storing order form data: ", error);
+      setIsSubmitting(false);
     }
   };
 
