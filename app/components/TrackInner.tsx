@@ -1,10 +1,10 @@
 "use client";
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Search,
@@ -23,212 +23,176 @@ import {
   Calendar,
   Shield,
   Camera,
+  Printer,
 } from "lucide-react";
-import Link from "next/link";
 import { QRScanner } from "./QRScanner";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { getContract } from "thirdweb";
+import { client } from "@/lib/utils";
+import { contractAddress } from "@/lib/contract";
+import { useReadContract } from "thirdweb/react";
+import { arbitrumSepolia } from "thirdweb/chains";
+import { Order } from "@/lib/interfaces";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-interface TrackingStep {
-  id: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  status: "completed" | "in-progress" | "pending";
-  icon: React.ReactNode;
-  location?: string;
-  blockchainHash?: string;
-}
+// Lazy-load QRScanner to avoid SSR issues
+// const QRScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
 
-interface TrackingData {
-  trackingId: string;
-  productName: string;
-  currentStep: number;
-  estimatedDelivery: string;
-  steps: TrackingStep[];
-}
+export function TrackInner({ orders }: { orders: Order[] }) {
+  const params = useSearchParams();
+  const router = useRouter();
 
-export const TrackInner = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [trackingData, setTrackingData] = useState<TrackingData | null>(null);
+  const [orderID, setOrderID] = useState<number | null>(null);
+  const [txHash, setTxHash] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+  const [orderDetails, setOrderDetails] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [inputValue, setInputValue] = useState("");
-  const [showScanner, setShowScanner] = useState(false);
-  const pathName = usePathname();
-  console.log(pathName);
+  // On initial load, parse from URL if exists
+  useEffect(() => {
+    const id = params.get("orderID");
+    const txHash = params.get("txHash");
+    if (id && txHash) {
+      setOrderID(parseInt(id));
+      setTxHash(txHash);
+      const order = orders.find((order) => order.id == parseInt(id));
+      console.log("Order: ", order);
+      if (order) {
+        setOrderDetails(order);
+      }
+    }
+  }, [params]);
 
   const handleScanResult = (data: string) => {
-    setInputValue(data);
-    setShowScanner(false);
-  };
-
-  // Mock tracking data
-  const mockTrackingData: TrackingData = {
-    trackingId: "VCH-ABC123XYZ",
-    productName: "Premium Wireless Headphones",
-    currentStep: 3,
-    estimatedDelivery: "2024-01-25",
-    steps: [
-      {
-        id: "1",
-        title: "Order Received",
-        description: "Your order has been confirmed and is being prepared",
-        timestamp: "2024-01-15 09:30 AM",
-        status: "completed",
-        icon: <Package className="h-5 w-5" />,
-        location: "San Francisco, CA",
-        blockchainHash: "0x1a2b3c4d5e6f7890abcdef1234567890abcdef12",
-      },
-      {
-        id: "2",
-        title: "Shipped to Netherlands",
-        description: "Package has been shipped to our verification facility",
-        timestamp: "2024-01-16 02:15 PM",
-        status: "completed",
-        icon: <Plane className="h-5 w-5" />,
-        location: "Amsterdam, Netherlands",
-        blockchainHash: "0x2b3c4d5e6f7890abcdef1234567890abcdef1234",
-      },
-      {
-        id: "3",
-        title: "Quality Analysis",
-        description: "Product is undergoing comprehensive quality verification",
-        timestamp: "2024-01-18 11:45 AM",
-        status: "completed",
-        icon: <FlaskConical className="h-5 w-5" />,
-        location: "Amsterdam, Netherlands",
-        blockchainHash: "0x3c4d5e6f7890abcdef1234567890abcdef123456",
-      },
-      {
-        id: "4",
-        title: "Production Unit 1",
-        description: "Initial manufacturing and assembly process",
-        timestamp: "2024-01-20 08:20 AM",
-        status: "in-progress",
-        icon: <Factory className="h-5 w-5" />,
-        location: "Rotterdam, Netherlands",
-      },
-      {
-        id: "5",
-        title: "Production Unit 2",
-        description: "Final assembly and quality control checks",
-        timestamp: "Expected: 2024-01-22",
-        status: "pending",
-        icon: <Settings className="h-5 w-5" />,
-        location: "Rotterdam, Netherlands",
-      },
-      {
-        id: "6",
-        title: "Delivered",
-        description: "Package delivered to your specified address",
-        timestamp: "Expected: 2024-01-25",
-        status: "pending",
-        icon: <Truck className="h-5 w-5" />,
-        location: "Your Address",
-      },
-    ],
-  };
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setTrackingData(mockTrackingData);
-    setIsLoading(false);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSearch();
+    try {
+      console.log("On scan data: ", data);
+      const url = new URL(data);
+      const id = url.searchParams.get("orderID");
+      const txHash = url.searchParams.get("txHash");
+      if (!id || !txHash) {
+        alert("Invalid QR code.");
+        return;
+      }
+      setOrderID(parseInt(id));
+      setTxHash(txHash);
+      setShowScanner(false);
+    } catch (error) {
+      alert("Failed to parse QR code.");
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="h-6 w-6 text-green-500" />;
-      case "in-progress":
-        return (
-          <div className="relative">
-            <Clock className="h-6 w-6 text-blue-500" />
-            <div className="absolute -inset-1 rounded-full border-2 border-blue-500 animate-pulse"></div>
-          </div>
-        );
-      default:
-        return <Clock className="h-6 w-6 text-slate-400" />;
+  const handleTrackingInput = () => {
+    try {
+      const order = orders.find((order) => order.id == orderID);
+      console.log("Order: ", order);
+      if (order) {
+        console.log("updada");
+        setOrderDetails(order);
+      }
+      console.log("ORDER DETAULS: ", orderDetails, orderDetails?.csShipping);
+    } catch (error) {
+      alert("Failed to handle tracking input.");
     }
   };
 
-  const getStepColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500";
-      case "in-progress":
-        return "bg-blue-500";
-      default:
-        return "bg-slate-300";
-    }
-  };
+  const formattedDate = (ts: number) => new Date(ts * 1000).toLocaleString();
+  console.log(orderDetails ? orderDetails.timestamp : "noooooo");
+  // const steps = orderDetails
+  //   ? [
+  //       {
+  //         label: "Customer Pickup",
+  //         hash: orderDetails.csShipping?.csShippingHash,
+  //         timestamp: orderDetails.csShipping?.timestamp,
+  //         icon: <Package className="w-5 h-5" />,
+  //       },
+  //       {
+  //         label: "Quality Analysis",
+  //         hash: orderDetails.analysis?.analysisHash,
+  //         timestamp: orderDetails.analysis?.timestamp,
+  //         icon: <FlaskConical className="w-5 h-5" />,
+  //       },
+  //       {
+  //         label: "Crystal Fusion Pickup",
+  //         hash: orderDetails.cfShipping?.cfShippingHash,
+  //         timestamp: orderDetails.cfShipping?.timestamp,
+  //         icon: <Truck className="w-5 h-5" />,
+  //       },
+  //       {
+  //         label: "Certificate Issued",
+  //         hash:
+  //           orderDetails.certificate.certificatesHashes?.length > 0
+  //             ? orderDetails.certificate.certificatesHashes[
+  //                 orderDetails.certificate.certificatesHashes.length - 1
+  //               ]
+  //             : "",
+  //         timestamp: orderDetails.certificate?.timestamp,
+  //         icon: <Shield className="w-5 h-5" />,
+  //       },
+  //       {
+  //         label: "Shipped to Belgium",
+  //         hash: orderDetails.shippingTwo?.shippingTwoHash,
+  //         timestamp: orderDetails.shippingTwo?.timestamp,
+  //         icon: <Truck className="w-5 h-5" />,
+  //       },
+  //       {
+  //         label: "Final Delivery",
+  //         hash: orderDetails.finalDelivery?.finalDeliveryHash,
+  //         timestamp: orderDetails.finalDelivery?.timestamp,
+  //         icon: <CheckCircle className="w-5 h-5" />,
+  //       },
+  //     ].filter((s) => s.hash)
+  //   : [];
 
-  const calculateProgress = () => {
-    if (!trackingData) return 0;
-    const completedSteps = trackingData.steps.filter(
-      (step) => step.status === "completed"
-    ).length;
-    return (completedSteps / trackingData.steps.length) * 100;
-  };
+  const steps = [
+    {
+      label: "Customer Pickup",
+      hash: orderDetails?.csShipping?.csShippingHash || "",
+      timestamp: orderDetails?.csShipping?.timestamp || 0,
+      icon: <Package className="w-5 h-5" />,
+    },
+    {
+      label: "Quality Analysis",
+      hash: orderDetails?.analysis?.analysisHash || "",
+      timestamp: orderDetails?.analysis?.timestamp || 0,
+      icon: <FlaskConical className="w-5 h-5" />,
+    },
+    {
+      label: "Crystal Fusion Pickup",
+      hash: orderDetails?.cfShipping?.cfShippingHash || "",
+      timestamp: orderDetails?.cfShipping?.timestamp || 0,
+      icon: <Truck className="w-5 h-5" />,
+    },
+    {
+      label: "Certificate Issued",
+      hash: orderDetails?.certificate?.certificatesHashes || [""],
+      timestamp: orderDetails?.certificate?.timestamp || 0,
+      icon: <Shield className="w-5 h-5" />,
+    },
+    {
+      label: "Shipped to Belgium",
+      hash: orderDetails?.shippingTwo?.shippingTwoHash || "",
+      timestamp: orderDetails?.shippingTwo?.timestamp || 0,
+      icon: <Truck className="w-5 h-5" />,
+    },
+    {
+      label: "Final Delivery",
+      hash: orderDetails?.finalDelivery?.finalDeliveryHash || "",
+      timestamp: orderDetails?.finalDelivery?.timestamp || 0,
+      icon: <CheckCircle className="w-5 h-5" />,
+    },
+  ];
+
   return (
-    <div>
-      <Card className="border-0 shadow-lg bg-white mb-8">
-        <CardContent className="p-6">
-          {/* <div className="flex flex-col sm:flex-row gap-4 mb-4"> */}
-          <div className="flex flex-col md:flex-row gap-4 mb-4 w-full">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                <Input
-                  placeholder="Enter tracking ID (e.g., VCH-ABC123XYZ)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="pl-10 h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSearch}
-                disabled={isLoading || !searchQuery.trim()}
-                className="w-full md:w-auto h-12 px-6 bg-blue-600 hover:bg-blue-700"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Searching...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Track Now
-                  </>
-                )}
-              </Button>
-              {/* <Button
-                  variant="outline"
-                  className="h-12 px-4 border-slate-300 hover:bg-slate-50 bg-transparent"
-                  onClick={() => {
-                    // In a real app, this would open camera for QR scanning
-                    setSearchQuery("VCH-ABC123XYZ");
-                  }}
-                >
-                  <QrCode className="h-4 w-4" />
-                </Button> */}
-            </div>
-          </div>
+    <div className="max-w-3xl mx-auto p-4 md:p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Track Your Order</CardTitle>
+        </CardHeader>
 
-          <div className="text-center">
+        <CardContent>
+          {/* QR Scanner Toggle */}
+          <div className="text-center mb-4">
             <Button
               variant="outline"
               className="w-full md:w-auto text-blue-600 border-blue-600 hover:bg-blue-50"
@@ -245,230 +209,179 @@ export const TrackInner = () => {
               onClose={() => setShowScanner(false)}
             />
           )}
+
+          {/* QR Hash + Manual Input */}
+          {!orderDetails && (
+            <div className="flex gap-2 flex-col md:flex-row mb-4">
+              <Input
+                placeholder="Enter Order ID"
+                value={orderID || ""}
+                onChange={(e) => setOrderID(Number(e.target.value))}
+              />
+              <Button onClick={handleTrackingInput}>Fetch</Button>
+            </div>
+          )}
+
+          {/* Timestamp Badge */}
+          {orderDetails && (
+            <Badge className="mb-4">
+              Created: {formattedDate(orderDetails.timestamp)}
+            </Badge>
+          )}
+
+          {/* Loading State */}
+          {isLoading && <p className="text-sm">Loading…</p>}
+
+          {/* Timeline Steps */}
+          {orderDetails && (
+            <div className="space-y-4">
+              {steps.map((step, index) => (
+                <Card key={index} className="p-4 border-l-4 border-blue-500">
+                  <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
+                    <div className="flex items-center gap-2">
+                      {step.icon}
+                      <span className="font-medium">{step.label}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {step.timestamp && step.timestamp > 0
+                        ? formattedDate(step.timestamp)
+                        : "Not completed"}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 text-sm text-gray-500 break-all">
+                    {step.hash ? (
+                      <p
+                        // variant="link"
+                        // size="sm"
+                        className="p-0 text-blue-600"
+                        // onClick={() =>
+                        //   window.open(
+                        //     `https://arbiscan.io/tx/${step.hash}`,
+                        //     "_blank"
+                        //   )
+                        // }
+                      >
+                        Hash - {step.hash}
+                        {/* <ExternalLink className="w-4 h-4 ml-1" /> */}
+                      </p>
+                    ) : (
+                      <span>Pending</span>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* PDF Report Button */}
+          {orderDetails && (
+            // <Button
+            //   className="mt-6 w-full"
+            //   onClick={() => {
+            //     // Replace this with actual PDF logic
+            //     alert("PDF generation coming soon!");
+            //   }}
+            // >
+            //   Download Full Report (PDF)
+            // </Button>
+            // <Button
+            //   onClick={() => window.print()}
+            //   variant="outline"
+            //   className="border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
+            // >
+            //   <Printer className="h-4 w-4 mr-2" />
+            //   Print
+            // </Button>
+            <Button
+              className="mt-6 w-full"
+              onClick={() => {
+                const doc = new jsPDF();
+                doc.setFontSize(16);
+                doc.text("Order Tracking Report", 14, 20);
+
+                doc.setFontSize(12);
+                doc.text(`Order ID: ${orderDetails.id}`, 14, 30);
+                doc.text(
+                  `Created: ${formattedDate(orderDetails.timestamp)}`,
+                  14,
+                  38
+                );
+
+                const stepData = [
+                  {
+                    label: "Customer Pickup",
+                    hash: orderDetails.csShipping?.csShippingHash || "Pending",
+                    timestamp: orderDetails.csShipping?.timestamp
+                      ? formattedDate(orderDetails.csShipping.timestamp)
+                      : "Pending",
+                  },
+                  {
+                    label: "Quality Analysis",
+                    hash: orderDetails.analysis?.analysisHash || "Pending",
+                    timestamp: orderDetails.analysis?.timestamp
+                      ? formattedDate(orderDetails.analysis.timestamp)
+                      : "Pending",
+                  },
+                  {
+                    label: "Crystal Fusion Pickup",
+                    hash: orderDetails.cfShipping?.cfShippingHash || "Pending",
+                    timestamp: orderDetails.cfShipping?.timestamp
+                      ? formattedDate(orderDetails.cfShipping.timestamp)
+                      : "Pending",
+                  },
+                  {
+                    label: "Certificate Issued",
+                    hash:
+                      orderDetails.certificate?.certificatesHashes?.length > 0
+                        ? orderDetails.certificate.certificatesHashes[
+                            orderDetails.certificate.certificatesHashes.length -
+                              1
+                          ]
+                        : "Pending",
+                    timestamp: orderDetails.certificate?.timestamp
+                      ? formattedDate(orderDetails.certificate.timestamp)
+                      : "Pending",
+                  },
+                  {
+                    label: "Shipped to Belgium",
+                    hash:
+                      orderDetails.shippingTwo?.shippingTwoHash || "Pending",
+                    timestamp: orderDetails.shippingTwo?.timestamp
+                      ? formattedDate(orderDetails.shippingTwo.timestamp)
+                      : "Pending",
+                  },
+                  {
+                    label: "Final Delivery",
+                    hash:
+                      orderDetails.finalDelivery?.finalDeliveryHash ||
+                      "Pending",
+                    timestamp: orderDetails.finalDelivery?.timestamp
+                      ? formattedDate(orderDetails.finalDelivery.timestamp)
+                      : "Pending",
+                  },
+                ];
+
+                autoTable(doc, {
+                  startY: 45,
+                  head: [["Step", "Transaction Hash", "Timestamp"]],
+                  body: stepData.map((step) => [
+                    step.label,
+                    step.hash,
+                    step.timestamp,
+                  ]),
+                  styles: { fontSize: 10 },
+                  headStyles: { fillColor: [22, 119, 255] },
+                });
+
+                doc.save(`Order_${orderDetails.id}_Report.pdf`);
+              }}
+            >
+              Download Full Report (PDF)
+            </Button>
+          )}
         </CardContent>
       </Card>
-
-      {/* Tracking Results */}
-      {trackingData && (
-        <div className="space-y-6">
-          {/* Product Info Card */}
-          <Card className="border-0 shadow-lg bg-white">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-1">
-                    {trackingData.productName}
-                  </h2>
-                  <p className="text-slate-600">
-                    Tracking ID: {trackingData.trackingId}
-                  </p>
-                </div>
-                <div className="mt-4 md:mt-0">
-                  <Badge
-                    variant="secondary"
-                    className="bg-blue-100 text-blue-800 px-3 py-1"
-                  >
-                    <Calendar className="h-4 w-4 mr-1" />
-                    Est. Delivery: {trackingData.estimatedDelivery}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-slate-700">
-                    Overall Progress
-                  </span>
-                  <span className="text-sm text-slate-600">
-                    {Math.round(calculateProgress())}% Complete
-                  </span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-2">
-                  <div
-                    className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${calculateProgress()}%` }}
-                  ></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Timeline */}
-          <Card className="border-0 shadow-lg bg-white">
-            <CardContent className="p-6">
-              <h3 className="text-xl font-bold text-slate-900 mb-6">
-                Tracking Timeline
-              </h3>
-
-              <div className="relative">
-                {/* Timeline Line */}
-                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-slate-200"></div>
-
-                {/* Timeline Steps */}
-                <div className="space-y-6">
-                  {trackingData.steps.map((step, index) => (
-                    <div key={step.id} className="relative flex items-start">
-                      {/* Timeline Dot */}
-                      <div className="relative z-10 flex items-center justify-center">
-                        <div
-                          className={`w-4 h-4 rounded-full ${getStepColor(
-                            step.status
-                          )} border-4 border-white shadow-lg`}
-                        ></div>
-                      </div>
-
-                      {/* Step Content */}
-                      <div className="ml-6 flex-1">
-                        <Card
-                          className={`border-l-4 ${
-                            step.status === "completed"
-                              ? "border-l-green-500 bg-green-50/30"
-                              : step.status === "in-progress"
-                              ? "border-l-blue-500 bg-blue-50/30"
-                              : "border-l-slate-300 bg-slate-50/30"
-                          } shadow-sm hover:shadow-md transition-shadow`}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center mb-2">
-                                  <div
-                                    className={`p-2 rounded-lg mr-3 ${
-                                      step.status === "completed"
-                                        ? "bg-green-100 text-green-600"
-                                        : step.status === "in-progress"
-                                        ? "bg-blue-100 text-blue-600"
-                                        : "bg-slate-100 text-slate-500"
-                                    }`}
-                                  >
-                                    {step.icon}
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-slate-900">
-                                      {step.title}
-                                    </h4>
-                                    {step.location && (
-                                      <div className="flex items-center text-sm text-slate-500 mt-1">
-                                        <MapPin className="h-3 w-3 mr-1" />
-                                        {step.location}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                <p className="text-slate-600 mb-2">
-                                  {step.description}
-                                </p>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center text-sm text-slate-500">
-                                    <Calendar className="h-4 w-4 mr-1" />
-                                    {step.timestamp}
-                                  </div>
-                                  <div className="flex items-center">
-                                    {getStatusIcon(step.status)}
-                                    <Badge
-                                      variant="secondary"
-                                      className={`ml-2 ${
-                                        step.status === "completed"
-                                          ? "bg-green-100 text-green-800"
-                                          : step.status === "in-progress"
-                                          ? "bg-blue-100 text-blue-800"
-                                          : "bg-slate-100 text-slate-600"
-                                      }`}
-                                    >
-                                      {step.status === "completed"
-                                        ? "Completed"
-                                        : step.status === "in-progress"
-                                        ? "In Progress"
-                                        : "Pending"}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Blockchain Button */}
-                            {step.status === "completed" &&
-                              step.blockchainHash && (
-                                <div className="mt-4 pt-4 border-t border-slate-200">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full md:w-auto border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-                                    onClick={() => {
-                                      // In a real app, this would open blockchain explorer
-                                      window.open(
-                                        `https://arbiscan.io/tx/${step.blockchainHash}`,
-                                        "_blank"
-                                      );
-                                    }}
-                                  >
-                                    <Shield className="h-4 w-4 mr-2" />
-                                    View on Blockchain
-                                    <ExternalLink className="h-3 w-3 ml-2" />
-                                  </Button>
-                                </div>
-                              )}
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Additional Info */}
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-green-50">
-            <CardContent className="p-6">
-              <div className="flex items-center mb-4">
-                <Shield className="h-6 w-6 text-blue-600 mr-2" />
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Blockchain Verification
-                </h3>
-              </div>
-              <p className="text-slate-600 mb-4">
-                All completed steps have been verified and recorded on the
-                blockchain for complete transparency and tamper-proof tracking.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Badge
-                  variant="secondary"
-                  className="bg-blue-100 text-blue-800"
-                >
-                  Verified Authentic
-                </Badge>
-                <Badge
-                  variant="secondary"
-                  className="bg-green-100 text-green-800"
-                >
-                  Tamper-Proof
-                </Badge>
-                <Badge
-                  variant="secondary"
-                  className="bg-purple-100 text-purple-800"
-                >
-                  Real-time Updates
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-      {!trackingData && !isLoading && pathName == "/track" && (
-        <Card className="border-0 shadow-lg bg-white">
-          <CardContent className="p-12 text-center">
-            <QrCode className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
-              Ready to Track
-            </h3>
-            <p className="text-slate-600">
-              Enter your tracking ID above to view your product's journey
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
-};
+}

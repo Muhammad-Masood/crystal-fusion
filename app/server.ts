@@ -15,8 +15,9 @@ export const addRecords = async (formData: OrderFormData) => {
     const contract = new ethers.Contract(contractAddress, contractABI, signer);
     const contractResult = await contract.addRecords(qrHash);
     console.log("Contract result: ", contractResult);
+    const orderId = await contract.totalOrders();
     const result: OrderResult = {
-      orderId: formData.orderId,
+      orderId: Number(orderId),
       qrCodeData: qrHash,
       timestamp: formData.creationTime,
       hash: contractResult.hash,

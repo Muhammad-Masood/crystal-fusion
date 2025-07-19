@@ -1,13 +1,37 @@
+type CsShipping = {
+  csShippingHash: string;
+  timestamp: number;
+};
+type Analysis = {
+  analysisHash: string;
+  timestamp: number;
+};
+type CFShipping = {
+  cfShippingHash: string;
+  timestamp: number;
+};
+type Certificate = {
+  certificatesHashes: string[];
+  timestamp: number;
+};
+type ShippingTwo = {
+  shippingTwoHash: string;
+  timestamp: number;
+};
+type FinalDelivery = {
+  finalDeliveryHash: string;
+  timestamp: number;
+};
+
 export interface Order {
   id: number;
   qrHash: string;
-  CshippingHash: string;
-  CFshippingHash: string;
-  shippingOneHash: string;
-  shippingTwoHash: string;
-  analysisHASH: string;
-  certificateHash: string;
-  finalDeliveryHash: string;
+  csShipping: CsShipping;
+  analysis: Analysis;
+  cfShipping: CFShipping;
+  certificate: Certificate;
+  shippingTwo: ShippingTwo;
+  finalDelivery: FinalDelivery;
   timestamp: number;
 }
 
@@ -20,7 +44,7 @@ export interface OverviewMetric {
 }
 
 export interface OrderFormData {
-  orderId: string;
+  // orderId: string;
   // Personal Information
   fullName: string;
   email: string;
@@ -57,8 +81,8 @@ export interface OrderFormData {
 }
 
 export interface OrderResult {
-  orderId: string;
+  orderId: number;
   qrCodeData: string;
   timestamp: string;
-  hash: string
+  hash: string;
 }

@@ -1,5 +1,5 @@
 export const contractAddress: string =
-  "0x897CA9fA673a8413d1Bb57C589Cafc1664bc40d1";
+  "0xDD52a82b6b86dF4f9199415e39799B44E3071460";
 export const contractABI: any[] = [
   {
     inputs: [],
@@ -179,7 +179,13 @@ export const contractABI: any[] = [
       },
     ],
     name: "addRecords",
-    outputs: [],
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
     stateMutability: "nonpayable",
     type: "function",
   },
@@ -334,7 +340,7 @@ export const contractABI: any[] = [
       },
       {
         internalType: "string",
-        name: "_analysisHASH",
+        name: "_hash",
         type: "string",
       },
     ],
@@ -352,7 +358,7 @@ export const contractABI: any[] = [
       },
       {
         internalType: "string",
-        name: "_certificateHASH",
+        name: "_hash",
         type: "string",
       },
     ],
@@ -370,7 +376,7 @@ export const contractABI: any[] = [
       },
       {
         internalType: "string",
-        name: "_CFshippingHash",
+        name: "_hash",
         type: "string",
       },
     ],
@@ -388,7 +394,7 @@ export const contractABI: any[] = [
       },
       {
         internalType: "string",
-        name: "_finalDeliveryHash",
+        name: "_hash",
         type: "string",
       },
     ],
@@ -406,7 +412,7 @@ export const contractABI: any[] = [
       },
       {
         internalType: "string",
-        name: "_CshippingHash",
+        name: "_hash",
         type: "string",
       },
     ],
@@ -424,25 +430,7 @@ export const contractABI: any[] = [
       },
       {
         internalType: "string",
-        name: "_shippingOneHash",
-        type: "string",
-      },
-    ],
-    name: "updateShippingOneLabal",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "_shippingTwoHash",
+        name: "_hash",
         type: "string",
       },
     ],
@@ -486,39 +474,106 @@ export const contractABI: any[] = [
             type: "string",
           },
           {
-            internalType: "string",
-            name: "CshippingHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "csShippingHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.CsShipping",
+            name: "csShipping",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "CFshippingHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "analysisHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.Analysis",
+            name: "analysis",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "shippingOneHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "cfShippingHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.CFShipping",
+            name: "cfShipping",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "shippingTwoHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string[]",
+                name: "certificatesHashes",
+                type: "string[]",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.Certificate",
+            name: "certificate",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "analysisHASH",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "shippingTwoHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.ShippingTwo",
+            name: "shippingTwo",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "certificateHash",
-            type: "string",
-          },
-          {
-            internalType: "string",
-            name: "finalDeliveryHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "finalDeliveryHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.FinalDelivery",
+            name: "finalDelivery",
+            type: "tuple",
           },
           {
             internalType: "uint256",
@@ -557,39 +612,106 @@ export const contractABI: any[] = [
             type: "string",
           },
           {
-            internalType: "string",
-            name: "CshippingHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "csShippingHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.CsShipping",
+            name: "csShipping",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "CFshippingHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "analysisHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.Analysis",
+            name: "analysis",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "shippingOneHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "cfShippingHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.CFShipping",
+            name: "cfShipping",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "shippingTwoHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string[]",
+                name: "certificatesHashes",
+                type: "string[]",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.Certificate",
+            name: "certificate",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "analysisHASH",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "shippingTwoHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.ShippingTwo",
+            name: "shippingTwo",
+            type: "tuple",
           },
           {
-            internalType: "string",
-            name: "certificateHash",
-            type: "string",
-          },
-          {
-            internalType: "string",
-            name: "finalDeliveryHash",
-            type: "string",
+            components: [
+              {
+                internalType: "string",
+                name: "finalDeliveryHash",
+                type: "string",
+              },
+              {
+                internalType: "uint256",
+                name: "timestamp",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct VerificationProcess.FinalDelivery",
+            name: "finalDelivery",
+            type: "tuple",
           },
           {
             internalType: "uint256",
@@ -669,39 +791,106 @@ export const contractABI: any[] = [
         type: "string",
       },
       {
-        internalType: "string",
-        name: "CshippingHash",
-        type: "string",
+        components: [
+          {
+            internalType: "string",
+            name: "csShippingHash",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "timestamp",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct VerificationProcess.CsShipping",
+        name: "csShipping",
+        type: "tuple",
       },
       {
-        internalType: "string",
-        name: "CFshippingHash",
-        type: "string",
+        components: [
+          {
+            internalType: "string",
+            name: "analysisHash",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "timestamp",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct VerificationProcess.Analysis",
+        name: "analysis",
+        type: "tuple",
       },
       {
-        internalType: "string",
-        name: "shippingOneHash",
-        type: "string",
+        components: [
+          {
+            internalType: "string",
+            name: "cfShippingHash",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "timestamp",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct VerificationProcess.CFShipping",
+        name: "cfShipping",
+        type: "tuple",
       },
       {
-        internalType: "string",
-        name: "shippingTwoHash",
-        type: "string",
+        components: [
+          {
+            internalType: "string[]",
+            name: "certificatesHashes",
+            type: "string[]",
+          },
+          {
+            internalType: "uint256",
+            name: "timestamp",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct VerificationProcess.Certificate",
+        name: "certificate",
+        type: "tuple",
       },
       {
-        internalType: "string",
-        name: "analysisHASH",
-        type: "string",
+        components: [
+          {
+            internalType: "string",
+            name: "shippingTwoHash",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "timestamp",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct VerificationProcess.ShippingTwo",
+        name: "shippingTwo",
+        type: "tuple",
       },
       {
-        internalType: "string",
-        name: "certificateHash",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "finalDeliveryHash",
-        type: "string",
+        components: [
+          {
+            internalType: "string",
+            name: "finalDeliveryHash",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "timestamp",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct VerificationProcess.FinalDelivery",
+        name: "finalDelivery",
+        type: "tuple",
       },
       {
         internalType: "uint256",
@@ -739,6 +928,19 @@ export const contractABI: any[] = [
         internalType: "bool",
         name: "",
         type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "totalOrders",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
       },
     ],
     stateMutability: "view",

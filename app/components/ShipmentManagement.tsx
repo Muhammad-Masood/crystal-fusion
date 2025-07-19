@@ -59,29 +59,22 @@ import Link from "next/link";
 import { Order } from "@/lib/interfaces";
 import { QRCodeCanvas } from "qrcode.react";
 import { contractAddress } from "@/lib/contract";
+import { useActiveAccount, useSendTransaction } from "thirdweb/react";
+import { useRouter } from "next/navigation";
+import { getContract, prepareContractCall, sendTransaction } from "thirdweb";
+import { arbitrumSepolia } from "thirdweb/chains";
+import { client } from "@/lib/utils";
 
 interface ShipmentStage {
   id: string;
   title: string;
   description: string;
-  status: "completed" | "in-progress" | "pending";
+  // status: "completed" | "in-progress" | "pending";
   icon: React.ReactNode;
   fedexHash?: string;
-  trackingHash?: string;
   certificateHash?: string;
   requiresBlockchain: boolean;
   actions: string[];
-}
-
-interface ShipmentOrder {
-  id: string;
-  orderId: string;
-  customerName: string;
-  productName: string;
-  dateReceived: string;
-  currentStage: number;
-  qrCode: string;
-  stages: ShipmentStage[];
 }
 
 const stages: ShipmentStage[] = [
@@ -89,10 +82,9 @@ const stages: ShipmentStage[] = [
     id: "stage-1",
     title: "To the Netherlands (Customer Pickup)",
     description: "Package shipped from customer to Netherlands facility",
-    status: "completed",
+    // status: "completed",
     icon: <Plane className="h-4 w-4" />,
     fedexHash: "0x1a2b3c4d5e6f7890abcdef1234567890abcdef12",
-    trackingHash: "FX123456789NL",
     requiresBlockchain: true,
     actions: ["Send Email Confirmation"],
   },
@@ -100,27 +92,36 @@ const stages: ShipmentStage[] = [
     id: "stage-2",
     title: "From Netherlands to Production Unit 1",
     description: "Package shipped to first production facility",
-    status: "in-progress",
+    // status: "in-progress",
     icon: <Factory className="h-4 w-4" />,
     fedexHash: "",
-    trackingHash: "",
     requiresBlockchain: true,
     actions: ["Notify Production Unit 1"],
   },
+  // {
+  //   id: "stage-3",
+  //   title: "From Production Unit 1 to Production Unit 2",
+  //   description: "Internal transfer between production units",
+  //   // status: "pending",
+  //   icon: <Truck className="h-4 w-4" />,
+  //   requiresBlockchain: false,
+  //   actions: ["Mark as Sent"],
+  // },
   {
     id: "stage-3",
-    title: "From Production Unit 1 to Production Unit 2",
-    description: "Internal transfer between production units",
-    status: "pending",
+    title: "From Unit 2 to Belgium (Shipment)",
+    description: "Unit 2 ships the diamonds to Belgium",
+    // status: "pending",
     icon: <Truck className="h-4 w-4" />,
-    requiresBlockchain: false,
+    requiresBlockchain: true,
     actions: ["Mark as Sent"],
   },
   {
     id: "stage-4",
-    title: "From Production Unit 2 to Belgium (Final Shipment)",
-    description: "Final delivery to customer in Belgium",
-    status: "pending",
+    title: "Product is Sent to the Consumer",
+    description:
+      "Crystal Fusion generates a FedEx shipping label to pick-up the parcel in Belgium and sends it direct to the consumer",
+    // status: "pending",
     icon: <MapPin className="h-4 w-4" />,
     requiresBlockchain: true,
     actions: ["Record on Blockchain"],
@@ -135,6 +136,14 @@ export function ShipmentManagement({
   const [stageFilter, setStageFilter] = useState("all");
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [isLoading, setIsLoading] = useState<{ [stageId: string]: boolean }>(
+    {}
+  );
+  const [fedexHashes, setFedexHashes] = useState<{ [stageId: string]: string }>(
+    {}
+  );
+  const activeAccount = useActiveAccount();
+  const router = useRouter();
 
   const toggleOrderExpansion = (orderId: string) => {
     setExpandedOrders((prev) =>
@@ -142,6 +151,50 @@ export function ShipmentManagement({
         ? prev.filter((id) => id !== orderId)
         : [...prev, orderId]
     );
+  };
+
+  const updateRecordHash = async (orderId: number, stageId: string) => {
+    try {
+      setIsLoading({ [stageId]: true });
+      if (!activeAccount) {
+        alert("Please connect your wallet");
+        return;
+      }
+      console.log(fedexHashes, orderId);
+      const hash = fedexHashes[stageId];
+      const contract = getContract({
+        address: contractAddress,
+        chain: arbitrumSepolia,
+        client: client,
+      });
+      const methodAbi =
+        stageId == "stage-1"
+          ? "function updatePickupShippingHash(uint256 id, string _hash)"
+          : stageId == "stage-2"
+          ? "function updateCFshippingLabal(uint256 id, string _hash)"
+          : stageId == "stage-3"
+          ? "function updateShippingTwoLabal(uint256 id, string _hash)"
+          : "function updatefinalDeliveryHash(uint256 id, string _hash)";
+      const transaction = prepareContractCall({
+        contract,
+        method: methodAbi,
+        params: [BigInt(orderId), hash],
+      });
+      const { transactionHash } = await sendTransaction({
+        account: activeAccount,
+        transaction,
+      });
+
+      console.log("Transaction result: ", transactionHash);
+      setIsLoading({ [stageId]: false });
+      router.refresh();
+    } catch (error: any) {
+      console.log("Error updating record: ", error);
+      setIsLoading({ [stageId]: false });
+      alert(`Transaction failed. ${error.message}`);
+    } finally {
+      setIsLoading({ [stageId]: false });
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -177,7 +230,9 @@ export function ShipmentManagement({
     const matchesSearch =
       order.id.toString() == searchQuery ||
       order.qrHash.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.finalDeliveryHash.toLowerCase().includes(searchQuery.toLowerCase());
+      order.finalDelivery.finalDeliveryHash
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
     // const matchesStage =
     //   stageFilter === "all" || order.currentStage.toString() === stageFilter;
@@ -422,13 +477,7 @@ export function ShipmentManagement({
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                     <div
-                                      className={`p-2 rounded-lg ${
-                                        stage.status === "completed"
-                                          ? "bg-green-100 text-green-600"
-                                          : stage.status === "in-progress"
-                                          ? "bg-blue-100 text-blue-600"
-                                          : "bg-slate-100 text-slate-500"
-                                      }`}
+                                      className={`p-2 rounded-lg bg-slate-100 text-slate-500`}
                                     >
                                       {stage.icon}
                                     </div>
@@ -441,7 +490,7 @@ export function ShipmentManagement({
                                       </p>
                                     </div>
                                   </div>
-                                  {getStatusIcon(stage.status)}
+                                  {/* {getStatusIcon(stage.status)} */}
                                 </div>
                               </CardHeader>
                               <CardContent className="space-y-4">
@@ -454,26 +503,24 @@ export function ShipmentManagement({
                                           FedEx Shipping Label Hash
                                         </Label>
                                         <div className="flex gap-2">
-                                          <Input
+                                          {/* <Input
                                             placeholder="Paste FedEx hash..."
                                             // value={stage.fedexHash || ""}
                                             className="font-mono text-sm"
-                                            // onChange={(e) => setInputValue(e.target.value)}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                          /> */}
+                                          <Input
+                                            placeholder="Paste FedEx hash..."
+                                            value={fedexHashes[stage.id] || ""}
+                                            onChange={(e) =>
+                                              setFedexHashes((prev) => ({
+                                                ...prev,
+                                                [stage.id]: e.target.value,
+                                              }))
+                                            }
+                                            className="font-mono text-sm"
                                           />
-                                          <Button variant="outline" size="sm">
-                                            <Upload className="h-4 w-4" />
-                                          </Button>
                                         </div>
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label className="text-sm font-medium">
-                                          FedEx Tracking Hash
-                                        </Label>
-                                        <Input
-                                          placeholder="Enter tracking hash..."
-                                          // value={stage.trackingHash || ""}
-                                          className="font-mono text-sm"
-                                        />
                                       </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -482,7 +529,13 @@ export function ShipmentManagement({
                                         Send Email Confirmation
                                       </Button>
                                       {stage.requiresBlockchain && (
-                                        <Button variant="outline">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() =>
+                                            updateRecordHash(order.id, stage.id)
+                                          }
+                                          disabled={isLoading[stage.id]}
+                                        >
                                           <Hash className="h-4 w-4 mr-2" />
                                           Record on Blockchain
                                         </Button>
@@ -495,7 +548,7 @@ export function ShipmentManagement({
                                 {index === 1 && (
                                   <div className="space-y-4">
                                     <div className="grid md:grid-cols-2 gap-4">
-                                      <div className="space-y-2">
+                                      {/* <div className="space-y-2">
                                         <Label className="text-sm font-medium">
                                           FedEx Label Hash
                                         </Label>
@@ -507,15 +560,22 @@ export function ShipmentManagement({
                                           <Button variant="outline" size="sm">
                                             <Upload className="h-4 w-4" />
                                           </Button>
-                                        </div>
-                                      </div>
+                                        </div> */}
+                                      {/* </div> */}
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          Shipping Hash
+                                          Shipment Hash
                                         </Label>
                                         <Input
                                           placeholder="Enter shipping hash..."
                                           className="font-mono text-sm"
+                                          value={fedexHashes[stage.id] || ""}
+                                          onChange={(e) =>
+                                            setFedexHashes((prev) => ({
+                                              ...prev,
+                                              [stage.id]: e.target.value,
+                                            }))
+                                          }
                                         />
                                       </div>
                                     </div>
@@ -525,7 +585,51 @@ export function ShipmentManagement({
                                         Notify Production Unit 1
                                       </Button>
                                       {stage.requiresBlockchain && (
-                                        <Button variant="outline">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() =>
+                                            updateRecordHash(order.id, stage.id)
+                                          }
+                                          disabled={isLoading[stage.id]}
+                                        >
+                                          <Hash className="h-4 w-4 mr-2" />
+                                          Record on Blockchain
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Stage 2: To Production Unit 1 */}
+                                {index === 2 && (
+                                  <div className="space-y-4">
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <Label className="text-sm font-medium">
+                                          Shipment Hash
+                                        </Label>
+                                        <Input
+                                          placeholder="Enter shipping hash..."
+                                          className="font-mono text-sm"
+                                          value={fedexHashes[stage.id] || ""}
+                                          onChange={(e) =>
+                                            setFedexHashes((prev) => ({
+                                              ...prev,
+                                              [stage.id]: e.target.value,
+                                            }))
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      {stage.requiresBlockchain && (
+                                        <Button
+                                          variant="outline"
+                                          onClick={() =>
+                                            updateRecordHash(order.id, stage.id)
+                                          }
+                                          disabled={isLoading[stage.id]}
+                                        >
                                           <Hash className="h-4 w-4 mr-2" />
                                           Record on Blockchain
                                         </Button>
@@ -535,7 +639,7 @@ export function ShipmentManagement({
                                 )}
 
                                 {/* Stage 3: To Production Unit 2 */}
-                                {index === 2 && (
+                                {/* {index === 2 && (
                                   <div className="space-y-4">
                                     <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                                       <div className="flex items-center gap-2 mb-2">
@@ -568,7 +672,7 @@ export function ShipmentManagement({
                                       Mark as Sent
                                     </Button>
                                   </div>
-                                )}
+                                )} */}
 
                                 {/* Stage 4: Final Delivery */}
                                 {index === 3 && (
@@ -583,7 +687,7 @@ export function ShipmentManagement({
                                           className="font-mono text-sm"
                                         />
                                       </div>
-                                      <div className="space-y-2">
+                                      {/* <div className="space-y-2">
                                         <Label className="text-sm font-medium">
                                           Upload PDF Certificate
                                         </Label>
@@ -596,10 +700,10 @@ export function ShipmentManagement({
                                           <Button variant="outline" size="sm">
                                             <FileText className="h-4 w-4" />
                                           </Button>
-                                        </div>
-                                      </div>
+                                        </div> */}
+                                      {/* </div> */}
                                     </div>
-                                    <div className="space-y-2">
+                                    {/* <div className="space-y-2">
                                       <Label className="text-sm font-medium">
                                         Auto-generated PDF Hash
                                       </Label>
@@ -608,22 +712,22 @@ export function ShipmentManagement({
                                         className="font-mono text-sm bg-slate-50"
                                         disabled
                                       />
-                                    </div>
+                                    </div> */}
                                     <div className="flex gap-2">
                                       <Button className="bg-purple-600 hover:bg-purple-700">
                                         <Hash className="h-4 w-4 mr-2" />
                                         Record on Blockchain
                                       </Button>
-                                      <Button variant="outline">
+                                      {/* <Button variant="outline">
                                         <ExternalLink className="h-4 w-4 mr-2" />
                                         View Blockchain Entry
-                                      </Button>
+                                      </Button> */}
                                     </div>
                                   </div>
                                 )}
 
                                 {/* Save Button */}
-                                <div className="pt-4 border-t border-slate-200">
+                                {/* <div className="pt-4 border-t border-slate-200">
                                   <Button
                                     variant="outline"
                                     className="w-full sm:w-auto bg-transparent"
@@ -631,7 +735,7 @@ export function ShipmentManagement({
                                     <Download className="h-4 w-4 mr-2" />
                                     Save Changes
                                   </Button>
-                                </div>
+                                </div> */}
                               </CardContent>
                             </Card>
                           ))}

@@ -56,7 +56,6 @@ import { OrderFormData, OrderResult } from "@/lib/interfaces";
 import { addRecords } from "../server";
 
 const initialFormData: OrderFormData = {
-  orderId: "",
   fullName: "",
   email: "",
   phone: "",
@@ -197,8 +196,8 @@ export default function OrderForm() {
 
     setIsSubmitting(true);
     try {
-      formData.orderId =
-        "DMD-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+      // formData.orderId =
+      //   "DMD-" + Math.random().toString(36).substr(2, 9).toUpperCase();
       formData.creationTime = new Date().toISOString();
       // Generate hash of order data anad create QR
 
@@ -261,20 +260,22 @@ export default function OrderForm() {
             <CardContent className="text-center">
               <div className="space-y-4 mb-6">
                 <div>
-                  <Label className="text-sm font-medium text-slate-600">
+                  {/* <Label className="text-sm font-medium text-slate-600">
                     Order ID
-                  </Label>
+                  </Label> */}
                   <div className="flex items-center justify-center space-x-2 mt-1">
                     <Badge
                       variant="secondary"
                       className="bg-blue-100 text-blue-800 text-lg px-4 py-2"
                     >
-                      {orderResult.orderId}
+                      Order ID - {orderResult.orderId}
                     </Badge>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => copyToClipboard(orderResult.orderId)}
+                      onClick={() =>
+                        copyToClipboard(orderResult.orderId.toString())
+                      }
                       className="h-8 w-8 p-0"
                     >
                       <Copy className="h-4 w-4" />
@@ -287,7 +288,7 @@ export default function OrderForm() {
                 <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                   {/* <QrCode className="h-32 w-32 text-slate-400" /> */}
                   <QRCodeCanvas
-                    value={`https://sepolia.arbiscan.io/tx/${orderResult.hash}`}
+                    value={`${process.env.NEXT_PUBLIC_DOMAIN}/track?txHash=${orderResult.hash}&orderID=${orderResult.orderId}&timestamp=${orderResult.timestamp}&qrHash=${orderResult.qrCodeData}`}
                     size={192}
                     level="H"
                     fgColor="#0f172a" // Tailwind slate-900

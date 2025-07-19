@@ -1,40 +1,47 @@
-"use client";
-
-import type React from "react";
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Search,
-  QrCode,
-  Package,
-  Plane,
-  FlaskConical,
-  Factory,
-  Settings,
-  Truck,
-  CheckCircle,
-  Clock,
-  ArrowLeft,
-  ExternalLink,
-  MapPin,
-  Calendar,
-  Shield,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { TrackInner } from "../components/TrackInner";
+import { contractReadOnly } from "@/lib/utils";
+import { Order } from "@/lib/interfaces";
 
-
-
-export default function TrackingPage() {
-
+export default async function page() {
+  const result = await contractReadOnly.getAllProducts();
+  console.log("result: ", result);
+  const orders: Order[] = result.map((order: Order) => {
+    return {
+      id: Number(order.id),
+      qrHash: order.qrHash,
+      csShipping: {
+        csShippingHash: order.csShipping.csShippingHash,
+        timestamp: Number(order.csShipping.timestamp.toString()),
+      },
+      analysis: {
+        analysisHash: order.analysis.analysisHash,
+        timestamp: Number(order.analysis.timestamp.toString()),
+      },
+      cfShipping: {
+        cfShippingHash: order.cfShipping.cfShippingHash,
+        timestamp: Number(order.cfShipping.timestamp.toString()),
+      },
+      certificate: {
+        certificatesHashes: order.certificate.certificatesHashes,
+        timestamp: Number(order.certificate.timestamp.toString()),
+      },
+      shippingTwo: {
+        shippingTwoHash: order.shippingTwo.shippingTwoHash,
+        timestamp: Number(order.shippingTwo.timestamp.toString()),
+      },
+      finalDelivery: {
+        finalDeliveryHash: order.finalDelivery.finalDeliveryHash,
+        timestamp: Number(order.finalDelivery.timestamp.toString()),
+      },
+      timestamp: Number(order.timestamp.toString()),
+    };
+  });
+  console.log("Orders: ", orders);
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-8">
           <Link
             href="/"
@@ -51,7 +58,7 @@ export default function TrackingPage() {
           </p>
         </div>
 
-        <TrackInner />
+        <TrackInner orders={orders}/>
       </div>
     </div>
   );

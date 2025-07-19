@@ -1084,16 +1084,40 @@ contract VerificationProcess is AccessControl, Ownable {
         string indexed qrHash,
         uint256 timestamp
     );
+    struct CsShipping {
+        string csShippingHash;
+        uint256 timestamp;
+    }
+    struct Analysis {
+        string analysisHash;
+        uint256 timestamp;
+    }
+    struct CFShipping {
+        string cfShippingHash;
+        uint256 timestamp;
+    }
+    struct Certificate {
+        string [] certificatesHashes;
+        uint256 timestamp;
+    }
+    struct ShippingTwo {
+        string shippingTwoHash;
+        uint256 timestamp;
+    }
+    struct FinalDelivery {
+        string finalDeliveryHash;
+        uint256 timestamp;
+    }
+    
     struct OrderDetails {
         uint256 id;
         string qrHash; //Order Creation
-        string CshippingHash; //pick up the parcel at the customer
-        string CFshippingHash; //pick up the parcel at crystal fusion
-        string shippingOneHash; //pick up the parcel at production unit 1
-        string shippingTwoHash; //pick up the parcel in Belgium and send to consumer.
-        string analysisHASH;
-        string certificateHash;
-        string finalDeliveryHash;
+        CsShipping csShipping; //pick up the parcel at the customer
+        Analysis analysis; // The system creates a PDF certificate for the product
+        CFShipping cfShipping; // pick-up the parcel at Crystal Fusion
+        Certificate certificate; // The company uploads a PDF certificate 
+        ShippingTwo shippingTwo; // Unit 2 ships the diamonds to Belgium - Shipment of diamond is recorded
+        FinalDelivery finalDelivery; //pick up the parcel in Belgium and send to consumer.
         uint256 timestamp;
     }
     OrderDetails[] public orders;
@@ -1117,18 +1141,18 @@ contract VerificationProcess is AccessControl, Ownable {
         _;
     }
 
-    function GrantAdminRole(address _address)
+   function GrantAdminRole(address _address)
         external
         onlyOwner
         _nonZeroAddress(_address)
         returns (bool success)
     {
         grantRole(ADMIN_ROLE, _address);
-        success = true;
         emit Admin(_address);
+        return true;
     }
 
-    function TransferOwner(address _address)
+     function TransferOwner(address _address)
         external
         onlyOwner
         _nonZeroAddress(_address)
@@ -1136,80 +1160,78 @@ contract VerificationProcess is AccessControl, Ownable {
     {
         _setupRole(DEFAULT_ADMIN_ROLE, _address);
         transferOwnership(_address);
-        success = true;
+        return true;
     }
+
 
     function revokePropertyAdminRole(address _address) external onlyOwner {
         revokeRole(ADMIN_ROLE, _address);
     }
 
-    function addRecords(string memory _qrHash) external onlyOwner {
+     function addRecords(string memory _qrHash) external onlyOwner returns (uint256) {
+        string [] memory certificatesHashes;
         OrderDetails memory step = OrderDetails({
             id: nextId,
             qrHash: _qrHash,
-            CshippingHash: "",
-            CFshippingHash: "",
-            shippingOneHash: "",
-            shippingTwoHash: "",
-            analysisHASH: "",
-            certificateHash: "",
-            finalDeliveryHash: "",
+            csShipping: CsShipping("", 0),
+            analysis: Analysis("", 0),
+            cfShipping: CFShipping("", 0),
+            certificate: Certificate(certificatesHashes, 0),
+            shippingTwo: ShippingTwo("", 0),
+            finalDelivery: FinalDelivery("", 0),
             timestamp: block.timestamp
         });
+
         orders.push(step);
         idToIndex[nextId] = orders.length - 1;
         emit StepRecorded(nextId, _qrHash, block.timestamp);
         nextId++;
+        return nextId - 1;
     }
 
-    // update the shipping hash for pick up the parcel at the customer
-    function updatePickupShippingHash(uint id, string memory _CshippingHash) external onlyRole(ADMIN_ROLE){
+    function totalOrders() public view returns (uint256)  {
+        return nextId;
+    }
+
+    function updatePickupShippingHash(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].CshippingHash = _CshippingHash;
+        orders[index].csShipping = CsShipping(_hash, block.timestamp);
     }
 
-   // update the record pick up the parcel at crystal fusion
-    function updateCFshippingLabal(uint id, string memory _CFshippingHash) external onlyRole(ADMIN_ROLE){
+    function updateCFshippingLabal(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].CFshippingHash = _CFshippingHash;
+        orders[index].cfShipping = CFShipping(_hash, block.timestamp);
     }
 
-   // update the record pick up the parcel at production unit 1
-    function updateShippingOneLabal(uint id, string memory _shippingOneHash) external onlyRole(ADMIN_ROLE){
+    function updateShippingTwoLabal(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].shippingOneHash = _shippingOneHash;
+        orders[index].shippingTwo = ShippingTwo(_hash, block.timestamp);
     }
 
-   // update the record pick up the parcel in Belgium and send to consumer
-    function updateShippingTwoLabal(uint id, string memory _shippingTwoHash) external onlyRole(ADMIN_ROLE){
+    function updateAnalysisHASH(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].shippingTwoHash = _shippingTwoHash;
+        orders[index].analysis = Analysis(_hash, block.timestamp);
     }
 
-   //update the record pick up the parcel in Belgium and send to consumer
-    function updateAnalysisHASH(uint id, string memory _analysisHASH) external onlyRole(ADMIN_ROLE){
+    function updateCertificateHASH(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].analysisHASH = _analysisHASH;
+        // Pushing into array (assumes multiple certs per order)
+        orders[index].certificate.certificatesHashes.push(_hash);
+        orders[index].certificate.timestamp = block.timestamp;
     }
 
-    function updateCertificateHASH(uint id, string memory _certificateHASH) external onlyRole(ADMIN_ROLE){
+    function updatefinalDeliveryHash(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].certificateHash = _certificateHASH;
+        orders[index].finalDelivery = FinalDelivery(_hash, block.timestamp);
     }
 
-    function updatefinalDeliveryHash(uint id, string memory _finalDeliveryHash) external onlyRole(ADMIN_ROLE){
-        require(id > 0 && id < nextId, "Invalid ID");
-        uint index = idToIndex[id];
-        orders[index].finalDeliveryHash = _finalDeliveryHash;
-    }
-
-    function getOrders(uint id) external view returns (OrderDetails memory) {
+    function getOrders(uint256 id) external view returns (OrderDetails memory) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
         return orders[index];
@@ -1219,8 +1241,8 @@ contract VerificationProcess is AccessControl, Ownable {
         return orders;
     }
 
-    function removeOrders(uint index) external onlyOwner {
+    function removeOrders(uint256 index) external onlyOwner {
         require(index < orders.length, "Out of bounds");
-        delete orders[index]; // sets numbers[index] to 0, array length unchanged
+        delete orders[index];
     }
 }

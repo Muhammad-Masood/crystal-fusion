@@ -8,7 +8,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const arbitrumSepoliaRpc = "https://api.zan.top/arb-sepolia";
+// const arbitrumSepoliaRpc = "https://api.zan.top/arb-sepolia";
+// const arbitrumSepoliaRpc = "https://endpoints.omniatech.io/v1/arbitrum/sepolia/public";
+const arbitrumSepoliaRpc = "https://api.zan.top/arb-sepolia"
+// https://arbitrum-sepolia-rpc.publicnode.com
 // const arbitrumSepoliaRpc = "https://arbitrum-sepolia.gateway.tenderly.co";
 
 export const provider = new ethers.JsonRpcProvider(arbitrumSepoliaRpc);

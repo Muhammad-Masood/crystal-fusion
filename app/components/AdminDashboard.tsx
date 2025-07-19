@@ -123,8 +123,12 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.qrHash.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.CshippingHash.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.CFshippingHash.toLowerCase().includes(searchQuery.toLowerCase());
+      order.csShipping.csShippingHash
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      order.cfShipping.cfShippingHash
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all";
     return matchesSearch && matchesStatus;
   });
@@ -132,7 +136,7 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
   const handleCancelOrder = async (orderId: number) => {
     try {
       setDeletingOrder(orderId);
-      console.log(deletingOrder)
+      console.log(deletingOrder);
       const orderIndex = orders.findIndex((order) => order.id === orderId);
       if (!activeAccount) {
         alert("Please connect your wallet");
@@ -193,34 +197,37 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a
+                      <Link
                         href="/admin/shipments"
                         className="flex items-center space-x-3"
                       >
                         <Truck className="h-4 w-4" />
                         <span>Shipments</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a
+                      <Link
                         href="/admin/certificates"
                         className="flex items-center space-x-3"
                       >
                         <Award className="h-4 w-4" />
                         <span>Certificates</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {/* <SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a href="#" className="flex items-center space-x-3">
-                        <Mail className="h-4 w-4" />
-                        <span>Emails</span>
-                      </a>
+                      <Link
+                        href="/admin/roles"
+                        className="flex items-center space-x-3"
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Roles</span>
+                      </Link>
                     </SidebarMenuButton>
-                  </SidebarMenuItem> */}
+                  </SidebarMenuItem>
                   {/* <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <a href="#" className="flex items-center space-x-3">
@@ -250,7 +257,7 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
               </div>
 
               {/* Buttons */}
-              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+              {/* <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
@@ -266,7 +273,7 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
                 </Button> */}
-              </div>
+              {/* </div> */}
             </header>
 
             {/* Main Dashboard Content */}
@@ -410,7 +417,12 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
                                 >
                                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="cursor-pointer">
+                                  <DropdownMenuItem
+                                    className="cursor-pointer"
+                                    onClick={() =>
+                                      router.push(`/admin/shipments`)
+                                    }
+                                  >
                                     <Eye className="h-4 w-4 mr-2" />
                                     View Details
                                   </DropdownMenuItem>
