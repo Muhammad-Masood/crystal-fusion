@@ -288,7 +288,7 @@ export default function OrderForm() {
                 <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                   {/* <QrCode className="h-32 w-32 text-slate-400" /> */}
                   <QRCodeCanvas
-                    value={`${process.env.NEXT_PUBLIC_DOMAIN}/track?txHash=${orderResult.hash}&orderID=${orderResult.orderId}&timestamp=${orderResult.timestamp}&qrHash=${orderResult.qrCodeData}`}
+                    value={`${window.location.origin}/track?txHash=${orderResult.hash}&orderID=${orderResult.orderId}&timestamp=${orderResult.timestamp}&qrHash=${orderResult.qrCodeData}`}
                     size={192}
                     level="H"
                     fgColor="#0f172a" // Tailwind slate-900
