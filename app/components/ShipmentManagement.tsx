@@ -54,6 +54,7 @@ import {
   Calendar,
   Hash,
   Download,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { Order } from "@/lib/interfaces";
@@ -288,6 +289,17 @@ export function ShipmentManagement({
                       >
                         <Award className="h-4 w-4" />
                         <span className="text-sm">Certificates</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        href="/admin/roles"
+                        className="flex items-center space-x-3"
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Roles</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

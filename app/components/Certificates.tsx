@@ -44,6 +44,7 @@ import {
   Shield,
   ExternalLink,
   Calendar,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { Order } from "@/lib/interfaces";
@@ -262,6 +263,17 @@ export function CertificatesManagement({
                         <Award className="h-4 w-4" />
                         <span className="text-sm">Certificates</span>
                       </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        href="/admin/roles"
+                        className="flex items-center space-x-3"
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Roles</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
