@@ -8,12 +8,12 @@ import { ConnectButton } from "thirdweb/react";
 import { arbitrumSepolia } from "thirdweb/chains";
 import { client } from "@/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
-import { SignIn, useUser } from "@clerk/nextjs";
+import { SignIn, UserButton, useUser } from "@clerk/nextjs";
 
 export const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathName = usePathname();
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
   const router = useRouter();
 
   return (
@@ -56,14 +56,17 @@ export const Navbar = () => {
             </Link>
 
             {/* {!user && <SignIn />} */}
-            <Button
-              variant="outline"
-              className="border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-              onClick={() => router.push("/login")}
-            >
-              Login
-            </Button>
-
+            {isSignedIn ? (
+              <UserButton />
+            ) : (
+              <Button
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
+                onClick={() => router.push("/login")}
+              >
+                Login
+              </Button>
+            )}
             {pathName.startsWith("/admin") && (
               <ConnectButton client={client} chain={arbitrumSepolia} />
             )}
@@ -118,13 +121,17 @@ export const Navbar = () => {
             </Link>
 
             {/* {!user && <SignIn />} */}
-            <Button
-              variant="outline"
-              className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-              onClick={() => router.push("/login")}
-            >
-              Login
-            </Button>
+            {isSignedIn ? (
+              <UserButton />
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
+                onClick={() => router.push("/login")}
+              >
+                Login
+              </Button>
+            )}
           </div>
         )}
       </div>
