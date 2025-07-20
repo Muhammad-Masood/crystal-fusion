@@ -8,75 +8,65 @@ import { ConnectButton } from "thirdweb/react";
 import { arbitrumSepolia } from "thirdweb/chains";
 import { client } from "@/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
-import { SignIn, UserButton, useUser } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 
 export const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const pathName = usePathname();
-  const { user, isSignedIn } = useUser();
+  const pathname = usePathname();
+  const { isSignedIn } = useUser();
   const router = useRouter();
 
+  const isAdmin = pathname.startsWith("/admin");
+
   return (
-    <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+    <nav className="bg-white/80 backdrop-blur border-b border-slate-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <Shield className="h-8 w-8 text-blue-600" />
+          <Link href="/" className="flex items-center gap-2">
+            <Shield className="h-6 w-6 text-blue-600" />
             <span className="text-xl font-bold text-slate-900">
-              CrystanFusion
+              CrystalFusion
             </span>
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link
-              href="/"
-              className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
-            >
-              Home
-            </Link>
-
-            {!pathName.startsWith("/admin") && (
-              <div>
-                <Link
-                  href="#how-it-works"
-                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
-                >
+          <div className="hidden md:flex items-center gap-6">
+            {!isAdmin && (
+              <>
+                <Link href="/" className="nav-link">
+                  Home
+                </Link>
+                <Link href="#how-it-works" className="nav-link">
                   How It Works
                 </Link>
-                <Link
-                  href="/order"
-                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
-                >
+                <Link href="/order" className="nav-link">
                   Order
                 </Link>
-                <Link
-                  href="/track"
-                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
-                >
+                <Link href="/track" className="nav-link">
                   Track Product
                 </Link>
-              </div>
+              </>
             )}
 
-            {/* {!user && <SignIn />} */}
             {isSignedIn ? (
-              <UserButton />
+              <UserButton afterSignOutUrl="/" />
             ) : (
               <Button
                 variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
                 onClick={() => router.push("/login")}
               >
                 Login
               </Button>
             )}
-            {pathName.startsWith("/admin") && (
+
+            {isAdmin && (
               <ConnectButton client={client} chain={arbitrumSepolia} />
             )}
           </div>
 
+          {/* Mobile Menu Toggle */}
           <div className="md:hidden">
             <Button
               variant="ghost"
@@ -95,51 +85,59 @@ export const Navbar = () => {
 
         {/* Mobile Nav */}
         {menuOpen && (
-          <div className="md:hidden mt-2 space-y-2 pb-4 animate-fade-in">
-            <Link
-              href="/"
-              className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
-              onClick={() => setMenuOpen(false)}
-            >
-              Home
-            </Link>
-            {!pathName.startsWith("/admin") && (
-              <div>
+          <div className="md:hidden mt-2 space-y-2 pb-4">
+            {!isAdmin && (
+              <>
+                <Link
+                  href="/"
+                  className="mobile-link"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Home
+                </Link>
                 <Link
                   href="#how-it-works"
-                  className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                  className="mobile-link"
                   onClick={() => setMenuOpen(false)}
                 >
                   How It Works
                 </Link>
                 <Link
                   href="/order"
-                  className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                  className="mobile-link"
                   onClick={() => setMenuOpen(false)}
                 >
                   Order
                 </Link>
                 <Link
                   href="/track"
-                  className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                  className="mobile-link"
                   onClick={() => setMenuOpen(false)}
                 >
                   Track Product
                 </Link>
-              </div>
+              </>
             )}
 
-            {/* {!user && <SignIn />} */}
             {isSignedIn ? (
-              <UserButton />
+              <UserButton afterSignOutUrl="/" />
             ) : (
               <Button
                 variant="outline"
-                className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-                onClick={() => router.push("/login")}
+                className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/login");
+                }}
               >
                 Login
               </Button>
+            )}
+
+            {isAdmin && (
+              <div className="pt-2">
+                <ConnectButton client={client} chain={arbitrumSepolia} />
+              </div>
             )}
           </div>
         )}
