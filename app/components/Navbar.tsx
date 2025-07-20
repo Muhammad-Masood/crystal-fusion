@@ -7,11 +7,14 @@ import Link from "next/link";
 import { ConnectButton } from "thirdweb/react";
 import { arbitrumSepolia } from "thirdweb/chains";
 import { client } from "@/lib/utils";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { SignIn, useUser } from "@clerk/nextjs";
 
 export const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathName = usePathname();
+  const { user } = useUser();
+  const router = useRouter();
 
   return (
     <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -28,7 +31,7 @@ export const Navbar = () => {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
-              href="#"
+              href="/"
               className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
             >
               Home
@@ -51,9 +54,12 @@ export const Navbar = () => {
             >
               Track Product
             </Link>
+
+            {/* {!user && <SignIn />} */}
             <Button
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
+              onClick={() => router.push("/login")}
             >
               Login
             </Button>
@@ -83,7 +89,7 @@ export const Navbar = () => {
         {menuOpen && (
           <div className="md:hidden mt-2 space-y-2 pb-4 animate-fade-in">
             <Link
-              href="#"
+              href="/"
               className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
               onClick={() => setMenuOpen(false)}
             >
@@ -110,10 +116,12 @@ export const Navbar = () => {
             >
               Track Product
             </Link>
+
+            {/* {!user && <SignIn />} */}
             <Button
               variant="outline"
               className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-              onClick={() => setMenuOpen(false)}
+              onClick={() => router.push("/login")}
             >
               Login
             </Button>
