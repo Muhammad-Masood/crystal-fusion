@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import { twMerge } from "tailwind-merge";
 import { contractABI, contractAddress } from "./contract";
 import { createThirdwebClient } from "thirdweb";
+import { upload, download } from "thirdweb/storage";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

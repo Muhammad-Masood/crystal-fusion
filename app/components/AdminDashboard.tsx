@@ -435,7 +435,10 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
                                       Edit Order
                                     </Link>
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="cursor-pointer">
+                                  <DropdownMenuItem
+                                    className="cursor-pointer"
+                                    onClick={() => router.push(`/track`)}
+                                  >
                                     <Package className="h-4 w-4 mr-2" />
                                     Track Package
                                   </DropdownMenuItem>

@@ -4,6 +4,8 @@ import { contractABI, contractAddress } from "@/lib/contract";
 import { OrderFormData, OrderResult } from "@/lib/interfaces";
 import { provider } from "@/lib/utils";
 import { ethers } from "ethers";
+import { Resend } from "resend";
+import { EmailTemplate } from "./email-template";
 
 export const addRecords = async (formData: OrderFormData) => {
   try {
@@ -29,3 +31,28 @@ export const addRecords = async (formData: OrderFormData) => {
     return null;
   }
 };
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendEmail(
+  orderId: number,
+  stageId: string,
+  title: string,
+  desc: string
+) {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "Acme <onboarding@resend.dev>",
+      to: ["development.masood@gmail.com"],
+      subject: title,
+      react: EmailTemplate({ stageId }),
+    });
+    if (error) {
+      console.log("Error sending email: ", error);
+      return error;
+    }
+    return data;
+  } catch (error) {
+    console.log("Error sending email: ", error);
+  }
+}

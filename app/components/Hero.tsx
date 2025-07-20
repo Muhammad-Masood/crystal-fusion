@@ -3,8 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { QrCode, Search } from "lucide-react";
 import { Track } from "./Track";
+import { Order } from "@/lib/interfaces";
 
-export const Hero = () => {
+
+export const Hero = ({orders}:{orders: Order[]}) => {
+
   return (
     <section className="py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -20,7 +23,7 @@ export const Hero = () => {
           </p>
         </div>
 
-        <Track />
+        <Track orders={orders} />
       </div>
     </section>
   );

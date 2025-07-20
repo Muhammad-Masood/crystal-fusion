@@ -27,11 +27,6 @@ import {
 } from "lucide-react";
 import { QRScanner } from "./QRScanner";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getContract } from "thirdweb";
-import { client } from "@/lib/utils";
-import { contractAddress } from "@/lib/contract";
-import { useReadContract } from "thirdweb/react";
-import { arbitrumSepolia } from "thirdweb/chains";
 import { Order } from "@/lib/interfaces";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -98,84 +93,45 @@ export function TrackInner({ orders }: { orders: Order[] }) {
 
   const formattedDate = (ts: number) => new Date(ts * 1000).toLocaleString();
   console.log(orderDetails ? orderDetails.timestamp : "noooooo");
-  // const steps = orderDetails
-  //   ? [
-  //       {
-  //         label: "Customer Pickup",
-  //         hash: orderDetails.csShipping?.csShippingHash,
-  //         timestamp: orderDetails.csShipping?.timestamp,
-  //         icon: <Package className="w-5 h-5" />,
-  //       },
-  //       {
-  //         label: "Quality Analysis",
-  //         hash: orderDetails.analysis?.analysisHash,
-  //         timestamp: orderDetails.analysis?.timestamp,
-  //         icon: <FlaskConical className="w-5 h-5" />,
-  //       },
-  //       {
-  //         label: "Crystal Fusion Pickup",
-  //         hash: orderDetails.cfShipping?.cfShippingHash,
-  //         timestamp: orderDetails.cfShipping?.timestamp,
-  //         icon: <Truck className="w-5 h-5" />,
-  //       },
-  //       {
-  //         label: "Certificate Issued",
-  //         hash:
-  //           orderDetails.certificate.certificatesHashes?.length > 0
-  //             ? orderDetails.certificate.certificatesHashes[
-  //                 orderDetails.certificate.certificatesHashes.length - 1
-  //               ]
-  //             : "",
-  //         timestamp: orderDetails.certificate?.timestamp,
-  //         icon: <Shield className="w-5 h-5" />,
-  //       },
-  //       {
-  //         label: "Shipped to Belgium",
-  //         hash: orderDetails.shippingTwo?.shippingTwoHash,
-  //         timestamp: orderDetails.shippingTwo?.timestamp,
-  //         icon: <Truck className="w-5 h-5" />,
-  //       },
-  //       {
-  //         label: "Final Delivery",
-  //         hash: orderDetails.finalDelivery?.finalDeliveryHash,
-  //         timestamp: orderDetails.finalDelivery?.timestamp,
-  //         icon: <CheckCircle className="w-5 h-5" />,
-  //       },
-  //     ].filter((s) => s.hash)
-  //   : [];
 
   const steps = [
     {
+      id: "step-1",
       label: "Customer Pickup",
       hash: orderDetails?.csShipping?.csShippingHash || "",
       timestamp: orderDetails?.csShipping?.timestamp || 0,
       icon: <Package className="w-5 h-5" />,
     },
     {
+      id: "step-2",
       label: "Quality Analysis",
       hash: orderDetails?.analysis?.analysisHash || "",
       timestamp: orderDetails?.analysis?.timestamp || 0,
       icon: <FlaskConical className="w-5 h-5" />,
     },
     {
+      id: "step-3",
       label: "Crystal Fusion Pickup",
       hash: orderDetails?.cfShipping?.cfShippingHash || "",
       timestamp: orderDetails?.cfShipping?.timestamp || 0,
       icon: <Truck className="w-5 h-5" />,
     },
     {
+      id: "step-4",
       label: "Certificate Issued",
       hash: orderDetails?.certificate?.certificatesHashes || [""],
       timestamp: orderDetails?.certificate?.timestamp || 0,
       icon: <Shield className="w-5 h-5" />,
     },
     {
+      id: "step-5",
       label: "Shipped to Belgium",
       hash: orderDetails?.shippingTwo?.shippingTwoHash || "",
       timestamp: orderDetails?.shippingTwo?.timestamp || 0,
       icon: <Truck className="w-5 h-5" />,
     },
     {
+      id: "step-6",
       label: "Final Delivery",
       hash: orderDetails?.finalDelivery?.finalDeliveryHash || "",
       timestamp: orderDetails?.finalDelivery?.timestamp || 0,
@@ -249,24 +205,58 @@ export function TrackInner({ orders }: { orders: Order[] }) {
                     </div>
                   </div>
 
-                  <div className="mt-2 text-sm text-gray-500 break-all">
+                  <div className="mt-2 text-sm text-gray-500 break-words">
                     {step.hash ? (
-                      <p
-                        // variant="link"
-                        // size="sm"
-                        className="p-0 text-blue-600"
-                        // onClick={() =>
-                        //   window.open(
-                        //     `https://arbiscan.io/tx/${step.hash}`,
-                        //     "_blank"
-                        //   )
-                        // }
-                      >
-                        Hash - {step.hash}
-                        {/* <ExternalLink className="w-4 h-4 ml-1" /> */}
-                      </p>
+                      step.id === "step-2" ? (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0 text-blue-600 break-words whitespace-normal cursor-pointer"
+                          onClick={() =>
+                            window.open(step.hash as string, "_blank")
+                          }
+                        >
+                          <span className="break-all">{step.hash}</span>
+                          <ExternalLink className="w-4 h-4 ml-1" />
+                        </Button>
+                      ) : step.id === "step-4" ? (
+                        <div className="flex flex-wrap gap-1">
+                          {(step.hash as string[]).map((hash, index) => (
+                            <Button
+                              key={index}
+                              variant="link"
+                              size="sm"
+                              className="p-0 text-blue-600 whitespace-normal break-words cursor-pointer"
+                              onClick={() => window.open(hash, "_blank")}
+                            >
+                              <span className="break-all">{hash}</span>
+                              <ExternalLink className="w-4 h-4 ml-1" />
+                            </Button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="p-0 text-blue-600 break-words">
+                          Hash - <span className="break-all">{step.hash}</span>
+                        </p>
+                      )
                     ) : (
                       <span>Pending</span>
+                    )}
+                    {txHash && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="p-0 text-blue-600"
+                        onClick={() =>
+                          window.open(
+                            `https://sepolia.arbiscan.io/tx/${txHash}`,
+                            "_blank"
+                          )
+                        }
+                      >
+                        {txHash}
+                        <ExternalLink className="w-4 h-4 ml-1" />
+                      </Button>
                     )}
                   </div>
                 </Card>

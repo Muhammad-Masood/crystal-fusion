@@ -64,6 +64,7 @@ import { useRouter } from "next/navigation";
 import { getContract, prepareContractCall, sendTransaction } from "thirdweb";
 import { arbitrumSepolia } from "thirdweb/chains";
 import { client } from "@/lib/utils";
+import { sendEmail } from "../server";
 
 interface ShipmentStage {
   id: string;
@@ -155,7 +156,7 @@ export function ShipmentManagement({
 
   const updateRecordHash = async (orderId: number, stageId: string) => {
     try {
-      setIsLoading({ [stageId]: true });
+      setIsLoading((prev) => ({ ...prev, [stageId]: true }));
       if (!activeAccount) {
         alert("Please connect your wallet");
         return;
@@ -171,10 +172,10 @@ export function ShipmentManagement({
         stageId == "stage-1"
           ? "function updatePickupShippingHash(uint256 id, string _hash)"
           : stageId == "stage-2"
-          ? "function updateCFshippingLabal(uint256 id, string _hash)"
-          : stageId == "stage-3"
-          ? "function updateShippingTwoLabal(uint256 id, string _hash)"
-          : "function updatefinalDeliveryHash(uint256 id, string _hash)";
+            ? "function updateCFshippingLabal(uint256 id, string _hash)"
+            : stageId == "stage-3"
+              ? "function updateShippingTwoLabal(uint256 id, string _hash)"
+              : "function updatefinalDeliveryHash(uint256 id, string _hash)";
       const transaction = prepareContractCall({
         contract,
         method: methodAbi,
@@ -184,16 +185,14 @@ export function ShipmentManagement({
         account: activeAccount,
         transaction,
       });
-
       console.log("Transaction result: ", transactionHash);
-      setIsLoading({ [stageId]: false });
+      alert(`Success! Transaction hash: ${transactionHash}`);
       router.refresh();
     } catch (error: any) {
       console.log("Error updating record: ", error);
-      setIsLoading({ [stageId]: false });
       alert(`Transaction failed. ${error.message}`);
     } finally {
-      setIsLoading({ [stageId]: false });
+      setIsLoading((prev) => ({ ...prev, [stageId]: false }));
     }
   };
 
@@ -318,34 +317,13 @@ export function ShipmentManagement({
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
-                      placeholder="Search by Order ID, Customer Name, or Product..."
+                      placeholder="Search by Order ID..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                 </div>
-                {/* <div className="flex gap-2">
-                  <Select value={stageFilter} onValueChange={setStageFilter}>
-                    <SelectTrigger className="w-48 border-slate-300">
-                      <SelectValue placeholder="Filter by Stage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Stages</SelectItem>
-                      <SelectItem value="1">To Netherlands</SelectItem>
-                      <SelectItem value="2">To Production Unit 1</SelectItem>
-                      <SelectItem value="3">To Production Unit 2</SelectItem>
-                      <SelectItem value="4">Final Delivery</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-transparent"
-                  >
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </div> */}
               </div>
             </div>
 
@@ -524,7 +502,18 @@ export function ShipmentManagement({
                                       </div>
                                     </div>
                                     <div className="flex gap-2">
-                                      <Button className="bg-blue-600 hover:bg-blue-700">
+                                      <Button
+                                        className="bg-blue-600 hover:bg-blue-700"
+                                        onClick={() => {
+                                          sendEmail(
+                                            order.id,
+                                            stage.id,
+                                            stage.title,
+                                            stage.description
+                                          );
+                                          alert("Email sent successfully");
+                                        }}
+                                      >
                                         <Mail className="h-4 w-4 mr-2" />
                                         Send Email Confirmation
                                       </Button>
@@ -714,6 +703,21 @@ export function ShipmentManagement({
                                       />
                                     </div> */}
                                     <div className="flex gap-2">
+                                      <Button
+                                        className="bg-blue-600 hover:bg-blue-700"
+                                        onClick={() => {
+                                          sendEmail(
+                                            order.id,
+                                            stage.id,
+                                            stage.title,
+                                            stage.description
+                                          );
+                                          alert("Email sent successfully");
+                                        }}
+                                      >
+                                        <Mail className="h-4 w-4 mr-2" />
+                                        Send Email Confirmation
+                                      </Button>
                                       <Button className="bg-purple-600 hover:bg-purple-700">
                                         <Hash className="h-4 w-4 mr-2" />
                                         Record on Blockchain

@@ -1,14 +1,17 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { TrackInner } from "../components/TrackInner";
-import { contractReadOnly } from "@/lib/utils";
-import { Order } from "@/lib/interfaces";
+import { client, contractReadOnly } from "@/lib/utils";
+import { Analysis, Order } from "@/lib/interfaces";
+import { resolveScheme } from "thirdweb/storage";
+import { Suspense } from "react";
 
 export default async function page() {
   const result = await contractReadOnly.getAllProducts();
   console.log("result: ", result);
-  const orders: Order[] = result.map((order: Order) => {
-    return {
+  let orders: Order[] = [];
+  for (const order of result) {
+    const orderToPush: Order = {
       id: Number(order.id),
       qrHash: order.qrHash,
       csShipping: {
@@ -37,7 +40,31 @@ export default async function page() {
       },
       timestamp: Number(order.timestamp.toString()),
     };
-  });
+
+    const orderAnalysisHash = order.analysis.analysisHash;
+    if (orderAnalysisHash) {
+      console.log(orderAnalysisHash);
+      const url = await resolveScheme({
+        uri: orderAnalysisHash,
+        client: client,
+      });
+      console.log("URL: ", url);
+      orderToPush.analysis.analysisHash = url;
+    }
+    const orderCertificateHashes = order.certificate.certificatesHashes;
+    if (orderCertificateHashes.length > 0) {
+      for (const hash of orderCertificateHashes) {
+        const url = await resolveScheme({
+          uri: orderAnalysisHash,
+          client: client,
+        });
+        console.log("URL: ", url);
+        orderToPush.certificate.certificatesHashes.push(url);
+      }
+    }
+    orders.push(orderToPush);
+  }
+
   console.log("Orders: ", orders);
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 px-4 sm:px-6 lg:px-8">
@@ -57,8 +84,9 @@ export default async function page() {
             Enter your tracking ID or scan QR code to view progress
           </p>
         </div>
-
-        <TrackInner orders={orders}/>
+        <Suspense fallback={<div>Loading tracker...</div>}>
+          <TrackInner orders={orders} />
+        </Suspense>
       </div>
     </div>
   );

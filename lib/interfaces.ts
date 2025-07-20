@@ -2,7 +2,7 @@ type CsShipping = {
   csShippingHash: string;
   timestamp: number;
 };
-type Analysis = {
+export type Analysis = {
   analysisHash: string;
   timestamp: number;
 };
@@ -10,7 +10,7 @@ type CFShipping = {
   cfShippingHash: string;
   timestamp: number;
 };
-type Certificate = {
+export type Certificate = {
   certificatesHashes: string[];
   timestamp: number;
 };
@@ -85,4 +85,8 @@ export interface OrderResult {
   qrCodeData: string;
   timestamp: string;
   hash: string;
+}
+
+export interface EmailTemplateProps {
+  stageId: string;
 }

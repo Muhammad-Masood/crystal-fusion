@@ -268,7 +268,7 @@ export default function OrderForm() {
                       variant="secondary"
                       className="bg-blue-100 text-blue-800 text-lg px-4 py-2"
                     >
-                      Order ID - {orderResult.orderId}
+                      ORD - {orderResult.orderId}
                     </Badge>
                     <Button
                       variant="ghost"

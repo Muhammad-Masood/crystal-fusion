@@ -1,5 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,13 +16,78 @@ import {
   MapPin,
 } from "lucide-react";
 import Link from "next/link";
-import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
+import { client, contractReadOnly } from "@/lib/utils";
+import { Order } from "@/lib/interfaces";
+import { resolveScheme } from "thirdweb/storage";
+import { Suspense } from "react";
 
-export default function HomePage() {
+export default async function page() {
+  const result = await contractReadOnly.getAllProducts();
+  console.log("result: ", result);
+  let orders: Order[] = [];
+  for (const order of result) {
+    const orderToPush: Order = {
+      id: Number(order.id),
+      qrHash: order.qrHash,
+      csShipping: {
+        csShippingHash: order.csShipping.csShippingHash,
+        timestamp: Number(order.csShipping.timestamp.toString()),
+      },
+      analysis: {
+        analysisHash: order.analysis.analysisHash,
+        timestamp: Number(order.analysis.timestamp.toString()),
+      },
+      cfShipping: {
+        cfShippingHash: order.cfShipping.cfShippingHash,
+        timestamp: Number(order.cfShipping.timestamp.toString()),
+      },
+      certificate: {
+        certificatesHashes: order.certificate.certificatesHashes,
+        timestamp: Number(order.certificate.timestamp.toString()),
+      },
+      shippingTwo: {
+        shippingTwoHash: order.shippingTwo.shippingTwoHash,
+        timestamp: Number(order.shippingTwo.timestamp.toString()),
+      },
+      finalDelivery: {
+        finalDeliveryHash: order.finalDelivery.finalDeliveryHash,
+        timestamp: Number(order.finalDelivery.timestamp.toString()),
+      },
+      timestamp: Number(order.timestamp.toString()),
+    };
+
+    const orderAnalysisHash = order.analysis.analysisHash;
+    if (orderAnalysisHash) {
+      console.log(orderAnalysisHash);
+      const url = await resolveScheme({
+        uri: orderAnalysisHash,
+        client: client,
+      });
+      console.log("URL: ", url);
+      orderToPush.analysis.analysisHash = url;
+    }
+    const orderCertificateHashes = order.certificate.certificatesHashes;
+    if (orderCertificateHashes.length > 0) {
+      for (const hash of orderCertificateHashes) {
+        const url = await resolveScheme({
+          uri: orderAnalysisHash,
+          client: client,
+        });
+        console.log("URL: ", url);
+        orderToPush.certificate.certificatesHashes.push(url);
+      }
+    }
+    orders.push(orderToPush);
+  }
+
+  console.log("Orders: ", orders);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <Hero />
+      <Suspense fallback={<div>Loading hero...</div>}>
+      <Hero orders={orders} />
+      </Suspense>
 
       {/* How It Works Section */}
       <section className="py-20 bg-slate-50" id="how-it-works">

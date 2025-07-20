@@ -1,22 +1,9 @@
-"use client";
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { QrCode, Search, Camera } from "lucide-react";
-import { QRScanner } from "./QRScanner";
+import { QrCode } from "lucide-react";
 import { TrackInner } from "./TrackInner";
+import { Order } from "@/lib/interfaces";
 
-export const Track = () => {
-  const [inputValue, setInputValue] = useState("");
-  const [showScanner, setShowScanner] = useState(false);
-
-  const handleScanResult = (data: string) => {
-    setInputValue(data);
-    setShowScanner(false);
-  };
-
+export const Track = ({ orders }: { orders: Order[] }) => {
   return (
     <div className="max-w-2xl mx-auto" id="track">
       <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
@@ -28,7 +15,7 @@ export const Track = () => {
             </h2>
           </div>
 
-          <TrackInner />
+          <TrackInner orders={orders} />
         </CardContent>
       </Card>
     </div>
