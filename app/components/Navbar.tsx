@@ -55,7 +55,7 @@ export const Navbar = () => {
               <Button
                 variant="outline"
                 className="border-blue-600 text-blue-600 hover:bg-blue-50"
-                onClick={() => router.push("/login")}
+                onClick={() => router.push("/sign-in")}
               >
                 Login
               </Button>
@@ -127,7 +127,7 @@ export const Navbar = () => {
                 className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
                 onClick={() => {
                   setMenuOpen(false);
-                  router.push("/login");
+                  router.push("/sign-in");
                 }}
               >
                 Login
