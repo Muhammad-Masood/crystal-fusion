@@ -36,24 +36,29 @@ export const Navbar = () => {
             >
               Home
             </Link>
-            <Link
-              href="#how-it-works"
-              className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
-            >
-              How It Works
-            </Link>
-            <Link
-              href="/order"
-              className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
-            >
-              Order
-            </Link>
-            <Link
-              href="/track"
-              className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
-            >
-              Track Product
-            </Link>
+
+            {!pathName.startsWith("/admin") && (
+              <div>
+                <Link
+                  href="#how-it-works"
+                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                >
+                  How It Works
+                </Link>
+                <Link
+                  href="/order"
+                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                >
+                  Order
+                </Link>
+                <Link
+                  href="/track"
+                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                >
+                  Track Product
+                </Link>
+              </div>
+            )}
 
             {/* {!user && <SignIn />} */}
             {isSignedIn ? (
@@ -98,27 +103,31 @@ export const Navbar = () => {
             >
               Home
             </Link>
-            <Link
-              href="#how-it-works"
-              className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
-              onClick={() => setMenuOpen(false)}
-            >
-              How It Works
-            </Link>
-            <Link
-              href="/order"
-              className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
-              onClick={() => setMenuOpen(false)}
-            >
-              Order
-            </Link>
-            <Link
-              href="/track"
-              className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
-              onClick={() => setMenuOpen(false)}
-            >
-              Track Product
-            </Link>
+            {!pathName.startsWith("/admin") && (
+              <div>
+                <Link
+                  href="#how-it-works"
+                  className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  How It Works
+                </Link>
+                <Link
+                  href="/order"
+                  className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Order
+                </Link>
+                <Link
+                  href="/track"
+                  className="block text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Track Product
+                </Link>
+              </div>
+            )}
 
             {/* {!user && <SignIn />} */}
             {isSignedIn ? (

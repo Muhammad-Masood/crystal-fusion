@@ -358,13 +358,13 @@ export default function OrderForm() {
             </CardContent>
           </Card>
 
-          <div className="text-center">
+          {/* <div className="text-center">
             <Link href="/">
               <Button className="bg-blue-600 hover:bg-blue-700">
                 Return to Home
               </Button>
             </Link>
-          </div>
+          </div> */}
         </div>
       </div>
     );
@@ -375,13 +375,13 @@ export default function OrderForm() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link
+          {/* <Link
             href="/"
             className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
-          </Link>
+          </Link> */}
           <div className="flex items-center justify-center mb-4">
             <Shield className="h-12 w-12 text-blue-600" />
           </div>
