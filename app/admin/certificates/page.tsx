@@ -1,3 +1,6 @@
+"use server"
+const dynamic = 'force-dynamic'
+
 import AdminProtectedPage from "@/app/components/AdminAccess";
 import { CertificatesManagement } from "@/app/components/Certificates";
 import { Order } from "@/lib/interfaces";

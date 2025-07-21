@@ -112,6 +112,7 @@ const overviewMetrics: OverviewMetric[] = [
 ];
 
 export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
+  console.log("orders: ", orders)
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("today");

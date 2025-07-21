@@ -1,4 +1,6 @@
-import type React from "react";
+"use server"
+const dynamic = 'force-dynamic'
+
 import { Order } from "@/lib/interfaces";
 import { AdminDashboard } from "../components/AdminDashboard";
 import { contractReadOnly } from "@/lib/utils";
