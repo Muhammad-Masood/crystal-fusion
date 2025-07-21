@@ -1,4 +1,4 @@
-import { clerkMiddleware, getAuth } from "@clerk/nextjs/server";
+import { clerkMiddleware, currentUser, getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 // Define allowed admin email(s)
@@ -6,6 +6,7 @@ const ADMIN_EMAILS = ["development.masood@gmail.com"];
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
+
   const { pathname } = req.nextUrl;
 
   // Redirect unauthenticated users from protected routes
@@ -19,9 +20,15 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Admin-only restriction for /admin
-  const email = sessionClaims?.email as string;
+  const _user = await currentUser();
+  // const email = sessionClaims?.email as string;
+  // console.log("Email: ", email, sessionClaims);
+  const userEmailExist = _user?.emailAddresses?.some((email) =>
+    ADMIN_EMAILS.includes(email.emailAddress)
+  );
   if (pathname.startsWith("/admin")) {
-    if (!email || !ADMIN_EMAILS.includes(email)) {
+    // if (!_user?.emailAddresses || !ADMIN_EMAILS.includes(_user.emailAddresses[0].emailAddress)) {
+    if (!_user?.emailAddresses || !userEmailExist) {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
