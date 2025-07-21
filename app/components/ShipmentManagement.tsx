@@ -518,7 +518,7 @@ export function ShipmentManagement({
                                         onClick={() => {
                                           if (!fedexTrackings[stage.id])
                                             return alert(
-                                              "Please paste FedEx hash first"
+                                              "Please paste FedEx tracking first"
                                             );
                                           sendEmail(
                                             order.id,
@@ -569,10 +569,10 @@ export function ShipmentManagement({
                                       {/* </div> */}
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          Shipment Hash
+                                          Shipment Tracking
                                         </Label>
                                         <Input
-                                          placeholder="Enter shipping hash..."
+                                          placeholder="Enter shipping tracking..."
                                           className="font-mono text-sm"
                                           value={fedexTrackings[stage.id] || ""}
                                           onChange={(e) =>
@@ -611,10 +611,10 @@ export function ShipmentManagement({
                                     <div className="grid md:grid-cols-2 gap-4">
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          Shipment Hash
+                                          Shipment Tracking
                                         </Label>
                                         <Input
-                                          placeholder="Enter shipping hash..."
+                                          placeholder="Enter shipping tracking..."
                                           className="font-mono text-sm"
                                           value={fedexTrackings[stage.id] || ""}
                                           onChange={(e) =>
@@ -685,46 +685,21 @@ export function ShipmentManagement({
                                     <div className="grid md:grid-cols-2 gap-4">
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          Final Delivery Hash
+                                          Final Delivery Tracking
                                         </Label>
                                         <Input
-                                          placeholder="Enter final delivery hash..."
+                                          placeholder="Enter final delivery tracking..."
                                           className="font-mono text-sm"
                                         />
                                       </div>
-                                      {/* <div className="space-y-2">
-                                        <Label className="text-sm font-medium">
-                                          Upload PDF Certificate
-                                        </Label>
-                                        <div className="flex gap-2">
-                                          <Input
-                                            type="file"
-                                            accept=".pdf"
-                                            className="text-sm"
-                                          />
-                                          <Button variant="outline" size="sm">
-                                            <FileText className="h-4 w-4" />
-                                          </Button>
-                                        </div> */}
-                                      {/* </div> */}
                                     </div>
-                                    {/* <div className="space-y-2">
-                                      <Label className="text-sm font-medium">
-                                        Auto-generated PDF Hash
-                                      </Label>
-                                      <Input
-                                        placeholder="Hash will be generated automatically..."
-                                        className="font-mono text-sm bg-slate-50"
-                                        disabled
-                                      />
-                                    </div> */}
                                     <div className="flex gap-2">
                                       <Button
                                         className="bg-blue-600 hover:bg-blue-700"
                                         onClick={() => {
                                           if (!fedexTrackings[stage.id]) {
                                             return alert(
-                                              "Please paste FedEx hash first"
+                                              "Please paste FedEx tracking first"
                                             );
                                           }
                                           sendEmail(
@@ -751,17 +726,6 @@ export function ShipmentManagement({
                                     </div>
                                   </div>
                                 )}
-
-                                {/* Save Button */}
-                                {/* <div className="pt-4 border-t border-slate-200">
-                                  <Button
-                                    variant="outline"
-                                    className="w-full sm:w-auto bg-transparent"
-                                  >
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Save Changes
-                                  </Button>
-                                </div> */}
                               </CardContent>
                             </Card>
                           ))}
