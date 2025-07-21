@@ -15,7 +15,7 @@ export default clerkMiddleware(async (auth, req) => {
   );
 
   if (!userId && isProtected) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
   // Admin-only restriction for /admin
