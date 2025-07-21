@@ -34,16 +34,28 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center gap-6">
             {!isAdmin && (
               <>
-                <Link href="/" className="nav-link">
+                <Link
+                  href="/"
+                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                >
                   Home
                 </Link>
-                <Link href="#how-it-works" className="nav-link">
+                <Link
+                  href="#how-it-works"
+                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                >
                   How It Works
                 </Link>
-                <Link href="/order" className="nav-link">
+                <Link
+                  href="/order"
+                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                >
                   Order
                 </Link>
-                <Link href="/track" className="nav-link">
+                <Link
+                  href="/track"
+                  className="text-slate-700 hover:text-blue-600 font-medium transition-colors"
+                >
                   Track Product
                 </Link>
               </>
@@ -66,7 +78,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Menu Toggle */}
+          {/* Mobile Menu Button */}
           <div className="md:hidden">
             <Button
               variant="ghost"
@@ -85,33 +97,33 @@ export const Navbar = () => {
 
         {/* Mobile Nav */}
         {menuOpen && (
-          <div className="md:hidden mt-2 space-y-2 pb-4">
+          <div className="md:hidden mt-2 space-y-3 pb-4 px-2">
             {!isAdmin && (
               <>
                 <Link
                   href="/"
-                  className="mobile-link"
+                  className="block py-2 px-3 rounded text-slate-700 hover:text-blue-600 hover:bg-blue-50 font-medium transition"
                   onClick={() => setMenuOpen(false)}
                 >
                   Home
                 </Link>
                 <Link
                   href="#how-it-works"
-                  className="mobile-link"
+                  className="block py-2 px-3 rounded text-slate-700 hover:text-blue-600 hover:bg-blue-50 font-medium transition"
                   onClick={() => setMenuOpen(false)}
                 >
                   How It Works
                 </Link>
                 <Link
                   href="/order"
-                  className="mobile-link"
+                  className="block py-2 px-3 rounded text-slate-700 hover:text-blue-600 hover:bg-blue-50 font-medium transition"
                   onClick={() => setMenuOpen(false)}
                 >
                   Order
                 </Link>
                 <Link
                   href="/track"
-                  className="mobile-link"
+                  className="block py-2 px-3 rounded text-slate-700 hover:text-blue-600 hover:bg-blue-50 font-medium transition"
                   onClick={() => setMenuOpen(false)}
                 >
                   Track Product
@@ -120,7 +132,9 @@ export const Navbar = () => {
             )}
 
             {isSignedIn ? (
-              <UserButton afterSignOutUrl="/" />
+              <div className="px-3">
+                <UserButton afterSignOutUrl="/" />
+              </div>
             ) : (
               <Button
                 variant="outline"
@@ -135,7 +149,7 @@ export const Navbar = () => {
             )}
 
             {isAdmin && (
-              <div className="pt-2">
+              <div className="pt-3 px-3">
                 <ConnectButton client={client} chain={arbitrumSepolia} />
               </div>
             )}
