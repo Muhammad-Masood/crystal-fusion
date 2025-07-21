@@ -1,3 +1,4 @@
+import AdminProtectedPage from "@/app/components/AdminAccess";
 import { ShipmentManagement } from "@/app/components/ShipmentManagement";
 import { Order } from "@/lib/interfaces";
 import { contractReadOnly } from "@/lib/utils";
@@ -37,5 +38,9 @@ export default async function page() {
     };
   });
   console.log("Orders: ", orders);
-  return <ShipmentManagement shipmentOrders={orders} />;
+  return (
+    <AdminProtectedPage>
+      <ShipmentManagement shipmentOrders={orders} />;
+    </AdminProtectedPage>
+  );
 }

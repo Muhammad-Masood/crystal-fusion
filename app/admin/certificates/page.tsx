@@ -1,3 +1,4 @@
+import AdminProtectedPage from "@/app/components/AdminAccess";
 import { CertificatesManagement } from "@/app/components/Certificates";
 import { Order } from "@/lib/interfaces";
 import { contractReadOnly } from "@/lib/utils";
@@ -47,12 +48,12 @@ export default async function page() {
     order.analysis.analysisHash ? (totalAnalysisUploaded += 1) : null;
   });
   return (
-    <>
+    <AdminProtectedPage>
       <CertificatesManagement
         orders={orders}
         totalAnalysisUploaded={totalAnalysisUploaded}
         totalCertificatesUploaded={totalCertificatesUploaded}
       />
-    </>
+    </AdminProtectedPage>
   );
 }

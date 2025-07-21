@@ -2,6 +2,7 @@ import type React from "react";
 import { Order } from "@/lib/interfaces";
 import { AdminDashboard } from "../components/AdminDashboard";
 import { contractReadOnly } from "@/lib/utils";
+import AdminProtectedPage from "../components/AdminAccess";
 
 export default async function page() {
   const result = await contractReadOnly.getAllProducts();
@@ -38,5 +39,9 @@ export default async function page() {
     };
   });
   console.log("Orders: ", orders);
-  return <AdminDashboard orders={orders} />;
+  return (
+    <AdminProtectedPage>
+      <AdminDashboard orders={orders} />;
+    </AdminProtectedPage>
+  );
 }

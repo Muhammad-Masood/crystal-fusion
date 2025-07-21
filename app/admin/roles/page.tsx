@@ -1,9 +1,12 @@
+import AdminProtectedPage from "@/app/components/AdminAccess";
 import AdminRoles from "@/app/components/AdminRoles";
 
 export default function page() {
   return (
     <>
-      <AdminRoles />
+      <AdminProtectedPage>
+        <AdminRoles />
+      </AdminProtectedPage>
     </>
   );
 }
