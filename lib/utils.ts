@@ -30,4 +30,4 @@ export const contractReadOnly = new ethers.Contract(
 
 // PVIQSHTF9PB44VDAAAGC3ESKAFH1XPBYS2
 
-export const ADMIN_EMAILS = ["development.masood@gmail.com","info@midaslifestyle.nl"]
+export const ADMIN_EMAILS = ["development.masood@gmail.com","info@midaslifestyle.nl", "surentechdev@gmail.com"]
