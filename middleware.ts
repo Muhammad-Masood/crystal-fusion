@@ -1,12 +1,40 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, getAuth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-export default clerkMiddleware();
+// Define allowed admin email(s)
+const ADMIN_EMAILS = ["development.masood@gmail.com"];
+
+export default clerkMiddleware(async (auth, req) => {
+  const { userId, sessionClaims } = await auth();
+  const { pathname } = req.nextUrl;
+
+  // Redirect unauthenticated users from protected routes
+  const protectedRoutes = ["/admin", "/order"];
+  const isProtected = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+
+  if (!userId && isProtected) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  // Admin-only restriction for /admin
+  const email = sessionClaims?.email as string;
+  if (pathname.startsWith("/admin")) {
+    if (!email || !ADMIN_EMAILS.includes(email)) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
+
+  return NextResponse.next();
+});
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
+    "/admin/:path*",
+    "/order",
+    "/track",
+    "/track/:path*",
+    "/order/:path*",
   ],
 };

@@ -38,14 +38,15 @@ export async function sendEmail(
   orderId: number,
   stageId: string,
   title: string,
-  desc: string
+  desc: string,
+  tracking: string
 ) {
   try {
     const { data, error } = await resend.emails.send({
       from: "Acme <onboarding@resend.dev>",
       to: ["development.masood@gmail.com"],
       subject: title,
-      react: EmailTemplate({ stageId }),
+      react: EmailTemplate({ stageId, tracking }),
     });
     if (error) {
       console.log("Error sending email: ", error);

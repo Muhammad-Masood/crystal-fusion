@@ -255,25 +255,6 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
                   </h1>
                 </div>
               </div>
-
-              {/* Buttons */}
-              {/* <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-transparent w-full sm:w-auto"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-                {/* <Button
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button> */}
-              {/* </div> */}
             </header>
 
             {/* Main Dashboard Content */}
@@ -350,21 +331,9 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
                           <TableHead className="font-semibold text-slate-700">
                             QR Hash
                           </TableHead>
-                          {/* <TableHead className="font-semibold text-slate-700">
-                            Analysis Hash
-                          </TableHead> */}
                           <TableHead className="font-semibold text-slate-700">
                             Date
                           </TableHead>
-                          {/* <TableHead className="font-semibold text-slate-700">
-                            Amount
-                          </TableHead>
-                          <TableHead className="font-semibold text-slate-700">
-                            Date
-                          </TableHead>
-                          <TableHead className="font-semibold text-slate-700">
-                            Tracking ID
-                          </TableHead> */}
                           <TableHead className="font-semibold text-slate-700 text-right">
                             Actions
                           </TableHead>

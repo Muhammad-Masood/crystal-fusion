@@ -296,20 +296,14 @@ export default function AdminRoles() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-slate-600 font-medium text-xs sm:text-sm">
-                System
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive>
-                      <a href="#" className="flex items-center space-x-3">
+                      <a
+                        href="/admin/roles"
+                        className="flex items-center space-x-3"
+                      >
                         <Users className="h-4 w-4" />
-                        <span className="text-sm">Admin Roles</span>
+                        <span className="text-sm">Roles</span>
                       </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

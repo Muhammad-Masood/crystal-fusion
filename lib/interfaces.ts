@@ -89,4 +89,5 @@ export interface OrderResult {
 
 export interface EmailTemplateProps {
   stageId: string;
+  tracking: string;
 }

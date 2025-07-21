@@ -141,9 +141,9 @@ export function ShipmentManagement({
   const [isLoading, setIsLoading] = useState<{ [stageId: string]: boolean }>(
     {}
   );
-  const [fedexHashes, setFedexHashes] = useState<{ [stageId: string]: string }>(
-    {}
-  );
+  const [fedexTrackings, setFedexTrackings] = useState<{
+    [stageId: string]: string;
+  }>({});
   const activeAccount = useActiveAccount();
   const router = useRouter();
 
@@ -162,8 +162,8 @@ export function ShipmentManagement({
         alert("Please connect your wallet");
         return;
       }
-      console.log(fedexHashes, orderId);
-      const hash = fedexHashes[stageId];
+      console.log(fedexTrackings, orderId);
+      const tracking = fedexTrackings[stageId];
       const contract = getContract({
         address: contractAddress,
         chain: arbitrumSepolia,
@@ -171,16 +171,16 @@ export function ShipmentManagement({
       });
       const methodAbi =
         stageId == "stage-1"
-          ? "function updatePickupShippingHash(uint256 id, string _hash)"
+          ? "function updatePickupShippingTracking(uint256 id, string _tracking)"
           : stageId == "stage-2"
-            ? "function updateCFshippingLabal(uint256 id, string _hash)"
+            ? "function updateCFshippingLabal(uint256 id, string _tracking)"
             : stageId == "stage-3"
-              ? "function updateShippingTwoLabal(uint256 id, string _hash)"
-              : "function updatefinalDeliveryHash(uint256 id, string _hash)";
+              ? "function updateShippingTwoLabal(uint256 id, string _tracking)"
+              : "function updatefinalDeliveryTracking(uint256 id, string _tracking)";
       const transaction = prepareContractCall({
         contract,
         method: methodAbi,
-        params: [BigInt(orderId), hash],
+        params: [BigInt(orderId), tracking],
       });
       const { transactionHash } = await sendTransaction({
         account: activeAccount,
@@ -275,7 +275,10 @@ export function ShipmentManagement({
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive>
-                      <a href="#" className="flex items-center space-x-3">
+                      <a
+                        href="/admin/shipments"
+                        className="flex items-center space-x-3"
+                      >
                         <Truck className="h-4 w-4" />
                         <span className="text-sm">Shipments</span>
                       </a>
@@ -490,20 +493,16 @@ export function ShipmentManagement({
                                     <div className="grid md:grid-cols-2 gap-4">
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          FedEx Shipping Label Hash
+                                          FedEx Tracking Number
                                         </Label>
                                         <div className="flex gap-2">
-                                          {/* <Input
-                                            placeholder="Paste FedEx hash..."
-                                            // value={stage.fedexHash || ""}
-                                            className="font-mono text-sm"
-                                            onChange={(e) => setInputValue(e.target.value)}
-                                          /> */}
                                           <Input
-                                            placeholder="Paste FedEx hash..."
-                                            value={fedexHashes[stage.id] || ""}
+                                            placeholder="Paste FedEx tracking..."
+                                            value={
+                                              fedexTrackings[stage.id] || ""
+                                            }
                                             onChange={(e) =>
-                                              setFedexHashes((prev) => ({
+                                              setFedexTrackings((prev) => ({
                                                 ...prev,
                                                 [stage.id]: e.target.value,
                                               }))
@@ -517,11 +516,16 @@ export function ShipmentManagement({
                                       <Button
                                         className="bg-blue-600 hover:bg-blue-700"
                                         onClick={() => {
+                                          if (!fedexTrackings[stage.id])
+                                            return alert(
+                                              "Please paste FedEx hash first"
+                                            );
                                           sendEmail(
                                             order.id,
                                             stage.id,
                                             stage.title,
-                                            stage.description
+                                            stage.description,
+                                            fedexTrackings[stage.id]
                                           );
                                           alert("Email sent successfully");
                                         }}
@@ -570,9 +574,9 @@ export function ShipmentManagement({
                                         <Input
                                           placeholder="Enter shipping hash..."
                                           className="font-mono text-sm"
-                                          value={fedexHashes[stage.id] || ""}
+                                          value={fedexTrackings[stage.id] || ""}
                                           onChange={(e) =>
-                                            setFedexHashes((prev) => ({
+                                            setFedexTrackings((prev) => ({
                                               ...prev,
                                               [stage.id]: e.target.value,
                                             }))
@@ -612,9 +616,9 @@ export function ShipmentManagement({
                                         <Input
                                           placeholder="Enter shipping hash..."
                                           className="font-mono text-sm"
-                                          value={fedexHashes[stage.id] || ""}
+                                          value={fedexTrackings[stage.id] || ""}
                                           onChange={(e) =>
-                                            setFedexHashes((prev) => ({
+                                            setFedexTrackings((prev) => ({
                                               ...prev,
                                               [stage.id]: e.target.value,
                                             }))
@@ -718,11 +722,17 @@ export function ShipmentManagement({
                                       <Button
                                         className="bg-blue-600 hover:bg-blue-700"
                                         onClick={() => {
+                                          if (!fedexTrackings[stage.id]) {
+                                            return alert(
+                                              "Please paste FedEx hash first"
+                                            );
+                                          }
                                           sendEmail(
                                             order.id,
                                             stage.id,
                                             stage.title,
-                                            stage.description
+                                            stage.description,
+                                            fedexTrackings[stage.id]
                                           );
                                           alert("Email sent successfully");
                                         }}
