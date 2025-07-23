@@ -57,7 +57,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { Order } from "@/lib/interfaces";
+import { Order, OrderFormData } from "@/lib/interfaces";
 import { QRCodeCanvas } from "qrcode.react";
 import { contractAddress } from "@/lib/contract";
 import { useActiveAccount, useSendTransaction } from "thirdweb/react";
@@ -163,7 +163,6 @@ export function ShipmentManagement({
         alert("Order not found");
         return;
       }
-      // orderData.qrHash
       // store file on ipfs
       const uri = await upload({
         client: client,
@@ -196,9 +195,15 @@ export function ShipmentManagement({
         account: activeAccount,
         transaction,
       });
-      if (stageId == "stage-2") {
-        const stage = stages.find((stage) => stage.id == stageId);
-        if (!stage) return;
+      const stage = stages.find((stage) => stage.id == stageId);
+      if (!stage) return;
+      if (stageId == "stage-1" || stageId == "stage-5") {
+        const res = await fetch(orderData.qrHash);
+        const orderFormData: OrderFormData = await res.json();
+        console.log(orderFormData);
+        sendEmail(orderId, stage.id, stage.title, stage.description, url, [orderFormData.email]);
+      }
+      else if (stageId == "stage-2") {
         const unit1Email = [process.env.NEXT_PUBLIC_UNIT_1_EMAIL!];
         sendEmail(
           orderId,
@@ -210,8 +215,6 @@ export function ShipmentManagement({
         );
         alert("Email sent successfully");
       } else if (stageId == "stage-3") {
-        const stage = stages.find((stage) => stage.id == stageId);
-        if (!stage) return;
         const adminEmails =
           process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(",") ?? [];
 
@@ -591,22 +594,25 @@ export function ShipmentManagement({
                                         <Label className="text-sm font-medium">
                                           Shipment Label
                                         </Label>
-                                        <Input
-                                          type="file"
-                                          accept=".pdf"
-                                          className="text-sm"
-                                          onChange={(e) => {
-                                            const file =
-                                              e.target.files?.[0] || null;
-                                            setUploadedFiles((prev) => ({
-                                              ...prev,
-                                              [`${order.id}-${stage.id}`]: file,
-                                            }));
-                                          }}
-                                        />
-                                        <Button variant="outline" size="sm">
-                                          <Upload className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex gap-2">
+                                          <Input
+                                            type="file"
+                                            accept=".pdf"
+                                            className="text-sm"
+                                            onChange={(e) => {
+                                              const file =
+                                                e.target.files?.[0] || null;
+                                              setUploadedFiles((prev) => ({
+                                                ...prev,
+                                                [`${order.id}-${stage.id}`]:
+                                                  file,
+                                              }));
+                                            }}
+                                          />
+                                          <Button variant="outline" size="sm">
+                                            <Upload className="h-4 w-4" />
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -673,22 +679,25 @@ export function ShipmentManagement({
                                         <Label className="text-sm font-medium">
                                           Shipment Label
                                         </Label>
-                                        <Input
-                                          type="file"
-                                          accept=".pdf"
-                                          className="text-sm"
-                                          onChange={(e) => {
-                                            const file =
-                                              e.target.files?.[0] || null;
-                                            setUploadedFiles((prev) => ({
-                                              ...prev,
-                                              [`${order.id}-${stage.id}`]: file,
-                                            }));
-                                          }}
-                                        />
-                                        <Button variant="outline" size="sm">
-                                          <Upload className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex gap-2">
+                                          <Input
+                                            type="file"
+                                            accept=".pdf"
+                                            className="text-sm"
+                                            onChange={(e) => {
+                                              const file =
+                                                e.target.files?.[0] || null;
+                                              setUploadedFiles((prev) => ({
+                                                ...prev,
+                                                [`${order.id}-${stage.id}`]:
+                                                  file,
+                                              }));
+                                            }}
+                                          />
+                                          <Button variant="outline" size="sm">
+                                            <Upload className="h-4 w-4" />
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -716,10 +725,25 @@ export function ShipmentManagement({
                                         <Label className="text-sm font-medium">
                                           Final Delivery Shipping Label
                                         </Label>
-                                        <Input
-                                          placeholder="Enter final delivery shipping label..."
-                                          className="font-mono text-sm"
-                                        />
+                                        <div className="flex gap-2">
+                                          <Input
+                                            type="file"
+                                            accept=".pdf"
+                                            className="text-sm"
+                                            onChange={(e) => {
+                                              const file =
+                                                e.target.files?.[0] || null;
+                                              setUploadedFiles((prev) => ({
+                                                ...prev,
+                                                [`${order.id}-${stage.id}`]:
+                                                  file,
+                                              }));
+                                            }}
+                                          />
+                                          <Button variant="outline" size="sm">
+                                            <Upload className="h-4 w-4" />
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                     <div className="flex gap-2">

@@ -113,7 +113,7 @@ export default function AnalysisForm() {
       alert(`Success! Tx: ${transactionHash}`);
       router.refresh();
     } catch (err) {
-      console.error("Error uploading or storing hash:", err);
+      console.log("Error uploading or storing hash:", err);
       alert("Something went wrong!");
     } finally {
       setIsLoading(false);
