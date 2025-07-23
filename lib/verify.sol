@@ -1085,7 +1085,7 @@ contract VerificationProcess is AccessControl, Ownable {
         uint256 timestamp
     );
     struct CsShipping {
-        string csShippingHash;
+        string tracking;
         uint256 timestamp;
     }
     struct Analysis {
@@ -1093,7 +1093,7 @@ contract VerificationProcess is AccessControl, Ownable {
         uint256 timestamp;
     }
     struct CFShipping {
-        string cfShippingHash;
+        string tracking;
         uint256 timestamp;
     }
     struct Certificate {
@@ -1101,11 +1101,11 @@ contract VerificationProcess is AccessControl, Ownable {
         uint256 timestamp;
     }
     struct ShippingTwo {
-        string shippingTwoHash;
+        string tracking;
         uint256 timestamp;
     }
     struct FinalDelivery {
-        string finalDeliveryHash;
+        string tracking;
         uint256 timestamp;
     }
     
@@ -1119,6 +1119,7 @@ contract VerificationProcess is AccessControl, Ownable {
         ShippingTwo shippingTwo; // Unit 2 ships the diamonds to Belgium - Shipment of diamond is recorded
         FinalDelivery finalDelivery; //pick up the parcel in Belgium and send to consumer.
         uint256 timestamp;
+        bool isReceived;
     }
     OrderDetails[] public orders;
     mapping(uint => uint) private idToIndex;
@@ -1179,7 +1180,8 @@ contract VerificationProcess is AccessControl, Ownable {
             certificate: Certificate(certificatesHashes, 0),
             shippingTwo: ShippingTwo("", 0),
             finalDelivery: FinalDelivery("", 0),
-            timestamp: block.timestamp
+            timestamp: block.timestamp,
+            isReceived: false
         });
 
         orders.push(step);
@@ -1193,22 +1195,28 @@ contract VerificationProcess is AccessControl, Ownable {
         return nextId;
     }
 
-    function updatePickupShippingHash(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
+    function markOrderAsReceived(uint256 id) external {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].csShipping = CsShipping(_hash, block.timestamp);
+        orders[index].isReceived = true;
     }
 
-    function updateCFshippingLabal(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
+    function updatePickupShippingTracking(uint256 id, string memory _tracking) external onlyRole(ADMIN_ROLE) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].cfShipping = CFShipping(_hash, block.timestamp);
+        orders[index].csShipping = CsShipping(_tracking, block.timestamp);
     }
 
-    function updateShippingTwoLabal(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
+    function updateCFshippingLabal(uint256 id, string memory _tracking) external onlyRole(ADMIN_ROLE) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].shippingTwo = ShippingTwo(_hash, block.timestamp);
+        orders[index].cfShipping = CFShipping(_tracking, block.timestamp);
+    }
+
+    function updateShippingTwoLabal(uint256 id, string memory _tracking) external onlyRole(ADMIN_ROLE) {
+        require(id > 0 && id < nextId, "Invalid ID");
+        uint index = idToIndex[id];
+        orders[index].shippingTwo = ShippingTwo(_tracking, block.timestamp);
     }
 
     function updateAnalysisHASH(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
@@ -1225,10 +1233,10 @@ contract VerificationProcess is AccessControl, Ownable {
         orders[index].certificate.timestamp = block.timestamp;
     }
 
-    function updatefinalDeliveryHash(uint256 id, string memory _hash) external onlyRole(ADMIN_ROLE) {
+    function updatefinalDeliveryTracking(uint256 id, string memory _tracking) external onlyRole(ADMIN_ROLE) {
         require(id > 0 && id < nextId, "Invalid ID");
         uint index = idToIndex[id];
-        orders[index].finalDelivery = FinalDelivery(_hash, block.timestamp);
+        orders[index].finalDelivery = FinalDelivery(_tracking, block.timestamp);
     }
 
     function getOrders(uint256 id) external view returns (OrderDetails memory) {
@@ -1244,5 +1252,11 @@ contract VerificationProcess is AccessControl, Ownable {
     function removeOrders(uint256 index) external onlyOwner {
         require(index < orders.length, "Out of bounds");
         delete orders[index];
+    }
+
+    function isOrderReceived(uint256 id) public view returns (bool){
+        // require(id > 0 && id < nextId, "Invalid ID");
+        uint index = idToIndex[id];
+        return orders[index].isReceived;
     }
 }

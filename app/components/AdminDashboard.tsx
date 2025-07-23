@@ -207,6 +207,17 @@ export const AdminDashboard = ({ orders }: { orders: Order[] }) => {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        href="/admin/analysis"
+                        className="flex items-center space-x-3"
+                      >
+                        <Award className="h-4 w-4" />
+                        <span>Analysis</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <Link

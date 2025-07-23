@@ -54,6 +54,7 @@ import { arbitrumSepolia } from "thirdweb/chains";
 import { client, provider } from "@/lib/utils";
 import { OrderFormData, OrderResult } from "@/lib/interfaces";
 import { addRecords } from "../server";
+import { resolveScheme, upload } from "thirdweb/storage";
 
 const initialFormData: OrderFormData = {
   fullName: "",
@@ -225,11 +226,17 @@ export default function OrderForm() {
       // formData.orderId =
       //   "DMD-" + Math.random().toString(36).substr(2, 9).toUpperCase();
       formData.creationTime = new Date().toISOString();
-      // Generate hash of order data anad create QR
-
       console.log("Form data: ", formData);
+      const uri = await upload({
+        client: client,
+        files: [JSON.stringify(formData)],
+      });
+      const url = await resolveScheme({
+        uri,
+        client: client,
+      });
 
-      const result = await addRecords(formData);
+      const result = await addRecords(formData, url);
       setOrderResult(result);
       setIsSubmitting(false);
     } catch (error) {

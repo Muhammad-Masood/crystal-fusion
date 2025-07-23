@@ -255,6 +255,17 @@ export function CertificatesManagement({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        href="/admin/analysis"
+                        className="flex items-center space-x-3"
+                      >
+                        <Award className="h-4 w-4" />
+                        <span>Analysis</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive>
                       <a
                         href="/admin/certificates"
@@ -455,7 +466,7 @@ export function CertificatesManagement({
                               </CardHeader>
                               <CardContent className="space-y-4">
                                 {/* Step 1: Product Analysis by Crystal Fusion */}
-                                {index === 0 && (
+                                {/* {index === 0 && (
                                   <div className="space-y-4">
                                     <div className="space-y-2">
                                       <Label className="text-sm font-medium">
@@ -479,16 +490,16 @@ export function CertificatesManagement({
                                           <Upload className="h-4 w-4" />
                                         </Button>
                                       </div>
-                                      {step.fileUploaded && (
+                                      {/* {step.fileUploaded && (
                                         <div className="flex items-center gap-2 text-sm text-green-600">
                                           <CheckCircle className="h-4 w-4" />
                                           <span>
                                             Analysis uploaded successfully
                                           </span>
                                         </div>
-                                      )}
-                                    </div>
-                                    <div className="space-y-2"></div>
+                                      )} */}
+                                {/* </div>  */}
+                                {/* <div className="space-y-2"></div>
                                     <div className="flex gap-2">
                                       <Button
                                         className="bg-blue-600 hover:bg-blue-700"
@@ -502,7 +513,7 @@ export function CertificatesManagement({
                                       </Button>
                                     </div>
                                   </div>
-                                )}
+                                )} */}
 
                                 {/* Step 2: Certificate from Production Unit 2 */}
                                 {index === 1 && (
@@ -550,7 +561,7 @@ export function CertificatesManagement({
                                   <div className="space-y-4">
                                     <div className="space-y-2">
                                       <Label className="text-sm font-medium">
-                                        Upload Certificate (PDF)
+                                        Upload IGI Certificate (PDF)
                                       </Label>
                                       <div className="flex gap-2">
                                         <Input
@@ -571,19 +582,6 @@ export function CertificatesManagement({
                                         </Button>
                                       </div>
                                     </div>
-                                    {/* <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <Truck className="h-4 w-4 text-blue-600" />
-                                        <span className="text-sm font-medium text-blue-800">
-                                          Track & Trace
-                                        </span>
-                                      </div>
-                                      <p className="text-sm text-blue-700">
-                                        Monitor shipment progress to Belgium and
-                                        record tracking information on
-                                        blockchain
-                                      </p>
-                                    </div> */}
                                     <Button
                                       className="bg-purple-600 hover:bg-purple-700"
                                       onClick={() =>
@@ -592,13 +590,13 @@ export function CertificatesManagement({
                                       disabled={isLoading[step.id]}
                                     >
                                       <Hash className="h-4 w-4 mr-2" />
-                                      Record Shipment on Blockchain
+                                      Record on Blockchain
                                     </Button>
                                   </div>
                                 )}
 
                                 {/* Step 4: Confirmation in Belgium */}
-                                {index === 3 && (
+                                {/* {index === 3 && (
                                   <div className="space-y-4">
                                     <div className="space-y-2">
                                       <Label className="text-sm font-medium">
@@ -636,7 +634,7 @@ export function CertificatesManagement({
                                       </Button>
                                     </div>
                                   </div>
-                                )}
+                                )} */}
                               </CardContent>
                             </Card>
                           ))}

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { ADMIN_EMAILS } from "@/lib/utils";
+// import { ADMIN_EMAILS } from "@/lib/utils";
 
 // const ADMIN_EMAILS = ["development.masood@gmail.com"];
 
@@ -14,6 +14,7 @@ export default function AdminProtectedPage({
 }) {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
+  const ADMIN_EMAILS = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(",") ?? [];
 
   useEffect(() => {
     if (!isLoaded) return;

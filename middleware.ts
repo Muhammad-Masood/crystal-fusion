@@ -2,7 +2,6 @@ import { clerkMiddleware, currentUser, getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 // Define allowed admin email(s)
-const ADMIN_EMAILS = ["development.masood@gmail.com"];
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();

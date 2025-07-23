@@ -7,25 +7,35 @@ import { ethers } from "ethers";
 import { Resend } from "resend";
 import { EmailTemplate } from "./email-template";
 
-export const addRecords = async (formData: OrderFormData) => {
+export const addRecords = async (formData: OrderFormData, url: string) => {
   try {
-    const formDataString = JSON.stringify(formData);
-    const qrHash = ethers.keccak256(ethers.toUtf8Bytes(formDataString));
-    console.log("QR Hash: ", qrHash);
     const signer = new ethers.Wallet(process.env.OWNER_PRIVATE_KEY!, provider);
     console.log("Signer: ", signer);
     const contract = new ethers.Contract(contractAddress, contractABI, signer);
-    const contractResult = await contract.addRecords(qrHash);
+    const contractResult = await contract.addRecords(url);
     console.log("Contract result: ", contractResult);
     const orderId = await contract.totalOrders();
     const result: OrderResult = {
       orderId: Number(orderId),
-      qrCodeData: qrHash,
+      qrCodeData: url,
       timestamp: formData.creationTime,
       hash: contractResult.hash,
     };
     console.log("Result: ", result);
     return result;
+  } catch (error) {
+    console.log("Error storing order form data: ", error);
+    return null;
+  }
+};
+
+export const markOrderAsReceived = async (orderId: number) => {
+  try {
+    const signer = new ethers.Wallet(process.env.OWNER_PRIVATE_KEY!, provider);
+    console.log("Signer: ", signer);
+    const contract = new ethers.Contract(contractAddress, contractABI, signer);
+    const contractResult = await contract.markOrderAsReceived(BigInt(orderId));
+    console.log("Contract result: ", contractResult);
   } catch (error) {
     console.log("Error storing order form data: ", error);
     return null;
@@ -39,12 +49,13 @@ export async function sendEmail(
   stageId: string,
   title: string,
   desc: string,
-  tracking: string
+  tracking: string,
+  receipientEmail: string[]
 ) {
   try {
     const { data, error } = await resend.emails.send({
       from: "Acme <onboarding@resend.dev>",
-      to: ["development.masood@gmail.com"],
+      to: receipientEmail,
       subject: title,
       react: EmailTemplate({ stageId, tracking }),
     });

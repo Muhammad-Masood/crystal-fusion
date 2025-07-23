@@ -66,6 +66,7 @@ import { getContract, prepareContractCall, sendTransaction } from "thirdweb";
 import { arbitrumSepolia } from "thirdweb/chains";
 import { client } from "@/lib/utils";
 import { sendEmail } from "../server";
+import { resolveScheme, upload } from "thirdweb/storage";
 
 interface ShipmentStage {
   id: string;
@@ -73,10 +74,8 @@ interface ShipmentStage {
   description: string;
   // status: "completed" | "in-progress" | "pending";
   icon: React.ReactNode;
-  fedexHash?: string;
   certificateHash?: string;
   requiresBlockchain: boolean;
-  actions: string[];
 }
 
 const stages: ShipmentStage[] = [
@@ -84,49 +83,38 @@ const stages: ShipmentStage[] = [
     id: "stage-1",
     title: "To the Netherlands (Customer Pickup)",
     description: "Package shipped from customer to Netherlands facility",
-    // status: "completed",
     icon: <Plane className="h-4 w-4" />,
-    fedexHash: "0x1a2b3c4d5e6f7890abcdef1234567890abcdef12",
     requiresBlockchain: true,
-    actions: ["Send Email Confirmation"],
   },
   {
     id: "stage-2",
     title: "From Netherlands to Production Unit 1",
     description: "Package shipped to first production facility",
-    // status: "in-progress",
     icon: <Factory className="h-4 w-4" />,
-    fedexHash: "",
     requiresBlockchain: true,
-    actions: ["Notify Production Unit 1"],
   },
-  // {
-  //   id: "stage-3",
-  //   title: "From Production Unit 1 to Production Unit 2",
-  //   description: "Internal transfer between production units",
-  //   // status: "pending",
-  //   icon: <Truck className="h-4 w-4" />,
-  //   requiresBlockchain: false,
-  //   actions: ["Mark as Sent"],
-  // },
   {
     id: "stage-3",
-    title: "From Unit 2 to Belgium (Shipment)",
-    description: "Unit 2 ships the diamonds to Belgium",
-    // status: "pending",
+    title: "From Production Unit 1 to Production Unit 2",
+    description: "Internal transfer between production units",
     icon: <Truck className="h-4 w-4" />,
-    requiresBlockchain: true,
-    actions: ["Mark as Sent"],
+    requiresBlockchain: false,
   },
   {
     id: "stage-4",
+    title: "From Unit 2 to Belgium (Shipment)",
+    description: "Unit 2 ships the diamonds to Belgium",
+    icon: <Truck className="h-4 w-4" />,
+    requiresBlockchain: true,
+  },
+  {
+    id: "stage-5",
     title: "Product is Sent to the Consumer",
     description:
       "Crystal Fusion generates a FedEx shipping label to pick-up the parcel in Belgium and sends it direct to the consumer",
     // status: "pending",
     icon: <MapPin className="h-4 w-4" />,
     requiresBlockchain: true,
-    actions: ["Record on Blockchain"],
   },
 ];
 export function ShipmentManagement({
@@ -135,15 +123,17 @@ export function ShipmentManagement({
   shipmentOrders: Order[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState("all");
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   const [showQrModal, setShowQrModal] = useState(false);
   const [isLoading, setIsLoading] = useState<{ [stageId: string]: boolean }>(
     {}
   );
-  const [fedexTrackings, setFedexTrackings] = useState<{
-    [stageId: string]: string;
+  const [uploadedFiles, setUploadedFiles] = useState<{
+    [key: string]: File | null;
   }>({});
+  // const [fedexTrackings, setFedexTrackings] = useState<{
+  //   [stageId: string]: string;
+  // }>({});
   const activeAccount = useActiveAccount();
   const router = useRouter();
 
@@ -162,8 +152,28 @@ export function ShipmentManagement({
         alert("Please connect your wallet");
         return;
       }
-      console.log(fedexTrackings, orderId);
-      const tracking = fedexTrackings[stageId];
+      const file = uploadedFiles[`${orderId}-${stageId}`];
+      if (!file) {
+        alert("Please select a file before uploading.");
+        return;
+      }
+      const orderData = shipmentOrders.find((order) => order.id == orderId);
+      // const customerEmail =
+      if (!orderData) {
+        alert("Order not found");
+        return;
+      }
+      // orderData.qrHash
+      // store file on ipfs
+      const uri = await upload({
+        client: client,
+        files: [file],
+      });
+      const url = await resolveScheme({
+        uri,
+        client: client,
+      });
+      console.log("URL: ", url);
       const contract = getContract({
         address: contractAddress,
         chain: arbitrumSepolia,
@@ -180,12 +190,41 @@ export function ShipmentManagement({
       const transaction = prepareContractCall({
         contract,
         method: methodAbi,
-        params: [BigInt(orderId), tracking],
+        params: [BigInt(orderId), url],
       });
       const { transactionHash } = await sendTransaction({
         account: activeAccount,
         transaction,
       });
+      if (stageId == "stage-2") {
+        const stage = stages.find((stage) => stage.id == stageId);
+        if (!stage) return;
+        const unit1Email = [process.env.NEXT_PUBLIC_UNIT_1_EMAIL!];
+        sendEmail(
+          orderId,
+          stage.id,
+          stage.title,
+          stage.description,
+          url,
+          unit1Email
+        );
+        alert("Email sent successfully");
+      } else if (stageId == "stage-3") {
+        const stage = stages.find((stage) => stage.id == stageId);
+        if (!stage) return;
+        const adminEmails =
+          process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(",") ?? [];
+
+        sendEmail(
+          orderId,
+          stage.id,
+          stage.title,
+          stage.description,
+          url,
+          adminEmails
+        );
+        alert("Email sent successfully");
+      }
       console.log("Transaction result: ", transactionHash);
       alert(`Success! Transaction hash: ${transactionHash}`);
       router.refresh();
@@ -282,6 +321,17 @@ export function ShipmentManagement({
                         <Truck className="h-4 w-4" />
                         <span className="text-sm">Shipments</span>
                       </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        href="/admin/analysis"
+                        className="flex items-center space-x-3"
+                      >
+                        <Award className="h-4 w-4" />
+                        <span>Analysis</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
@@ -493,46 +543,30 @@ export function ShipmentManagement({
                                     <div className="grid md:grid-cols-2 gap-4">
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          FedEx Tracking Number
+                                          Upload Certificate (PDF)
                                         </Label>
                                         <div className="flex gap-2">
                                           <Input
-                                            placeholder="Paste FedEx tracking..."
-                                            value={
-                                              fedexTrackings[stage.id] || ""
-                                            }
-                                            onChange={(e) =>
-                                              setFedexTrackings((prev) => ({
+                                            type="file"
+                                            accept=".pdf"
+                                            className="text-sm"
+                                            onChange={(e) => {
+                                              const file =
+                                                e.target.files?.[0] || null;
+                                              setUploadedFiles((prev) => ({
                                                 ...prev,
-                                                [stage.id]: e.target.value,
-                                              }))
-                                            }
-                                            className="font-mono text-sm"
+                                                [`${order.id}-${stage.id}`]:
+                                                  file,
+                                              }));
+                                            }}
                                           />
+                                          <Button variant="outline" size="sm">
+                                            <Upload className="h-4 w-4" />
+                                          </Button>
                                         </div>
                                       </div>
                                     </div>
                                     <div className="flex gap-2">
-                                      <Button
-                                        className="bg-blue-600 hover:bg-blue-700"
-                                        onClick={() => {
-                                          if (!fedexTrackings[stage.id])
-                                            return alert(
-                                              "Please paste FedEx tracking first"
-                                            );
-                                          sendEmail(
-                                            order.id,
-                                            stage.id,
-                                            stage.title,
-                                            stage.description,
-                                            fedexTrackings[stage.id]
-                                          );
-                                          alert("Email sent successfully");
-                                        }}
-                                      >
-                                        <Mail className="h-4 w-4 mr-2" />
-                                        Send Email Confirmation
-                                      </Button>
                                       {stage.requiresBlockchain && (
                                         <Button
                                           variant="outline"
@@ -542,7 +576,7 @@ export function ShipmentManagement({
                                           disabled={isLoading[stage.id]}
                                         >
                                           <Hash className="h-4 w-4 mr-2" />
-                                          Record on Blockchain
+                                          Send Email and Record on Blockchain
                                         </Button>
                                       )}
                                     </div>
@@ -553,42 +587,29 @@ export function ShipmentManagement({
                                 {index === 1 && (
                                   <div className="space-y-4">
                                     <div className="grid md:grid-cols-2 gap-4">
-                                      {/* <div className="space-y-2">
-                                        <Label className="text-sm font-medium">
-                                          FedEx Label Hash
-                                        </Label>
-                                        <div className="flex gap-2">
-                                          <Input
-                                            placeholder="Paste FedEx hash..."
-                                            className="font-mono text-sm"
-                                          />
-                                          <Button variant="outline" size="sm">
-                                            <Upload className="h-4 w-4" />
-                                          </Button>
-                                        </div> */}
-                                      {/* </div> */}
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          Shipment Tracking
+                                          Shipment Label
                                         </Label>
                                         <Input
-                                          placeholder="Enter shipping tracking..."
-                                          className="font-mono text-sm"
-                                          value={fedexTrackings[stage.id] || ""}
-                                          onChange={(e) =>
-                                            setFedexTrackings((prev) => ({
+                                          type="file"
+                                          accept=".pdf"
+                                          className="text-sm"
+                                          onChange={(e) => {
+                                            const file =
+                                              e.target.files?.[0] || null;
+                                            setUploadedFiles((prev) => ({
                                               ...prev,
-                                              [stage.id]: e.target.value,
-                                            }))
-                                          }
+                                              [`${order.id}-${stage.id}`]: file,
+                                            }));
+                                          }}
                                         />
+                                        <Button variant="outline" size="sm">
+                                          <Upload className="h-4 w-4" />
+                                        </Button>
                                       </div>
                                     </div>
                                     <div className="flex gap-2">
-                                      <Button className="bg-orange-600 hover:bg-orange-700">
-                                        <Bell className="h-4 w-4 mr-2" />
-                                        Notify Production Unit 1
-                                      </Button>
                                       {stage.requiresBlockchain && (
                                         <Button
                                           variant="outline"
@@ -598,53 +619,14 @@ export function ShipmentManagement({
                                           disabled={isLoading[stage.id]}
                                         >
                                           <Hash className="h-4 w-4 mr-2" />
-                                          Record on Blockchain
+                                          Notify Unit 1 and Record on Blockchain
                                         </Button>
                                       )}
                                     </div>
                                   </div>
                                 )}
 
-                                {/* Stage 2: To Production Unit 1 */}
                                 {index === 2 && (
-                                  <div className="space-y-4">
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                      <div className="space-y-2">
-                                        <Label className="text-sm font-medium">
-                                          Shipment Tracking
-                                        </Label>
-                                        <Input
-                                          placeholder="Enter shipping tracking..."
-                                          className="font-mono text-sm"
-                                          value={fedexTrackings[stage.id] || ""}
-                                          onChange={(e) =>
-                                            setFedexTrackings((prev) => ({
-                                              ...prev,
-                                              [stage.id]: e.target.value,
-                                            }))
-                                          }
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      {stage.requiresBlockchain && (
-                                        <Button
-                                          variant="outline"
-                                          onClick={() =>
-                                            updateRecordHash(order.id, stage.id)
-                                          }
-                                          disabled={isLoading[stage.id]}
-                                        >
-                                          <Hash className="h-4 w-4 mr-2" />
-                                          Record on Blockchain
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Stage 3: To Production Unit 2 */}
-                                {/* {index === 2 && (
                                   <div className="space-y-4">
                                     <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                                       <div className="flex items-center gap-2 mb-2">
@@ -658,7 +640,7 @@ export function ShipmentManagement({
                                         step - Internal transfer only
                                       </p>
                                     </div>
-                                    <div className="space-y-2">
+                                    {/* <div className="space-y-2">
                                       <Label className="text-sm font-medium">
                                         Upload Label Hash (Optional)
                                       </Label>
@@ -671,58 +653,80 @@ export function ShipmentManagement({
                                           <Upload className="h-4 w-4" />
                                         </Button>
                                       </div>
-                                    </div>
-                                    <Button className="bg-green-600 hover:bg-green-700">
+                                    </div> */}
+                                    <Button
+                                      className="bg-green-600 hover:bg-green-700"
+                                      onClick={() =>
+                                        updateRecordHash(order.id, stage.id)
+                                      }
+                                    >
                                       <CheckCircle className="h-4 w-4 mr-2" />
                                       Mark as Sent
                                     </Button>
                                   </div>
-                                )} */}
-
-                                {/* Stage 4: Final Delivery */}
+                                )}
+                                {/* SHipment of Diamond from Unit 2 */}
                                 {index === 3 && (
                                   <div className="space-y-4">
                                     <div className="grid md:grid-cols-2 gap-4">
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          Final Delivery Tracking
+                                          Shipment Label
                                         </Label>
                                         <Input
-                                          placeholder="Enter final delivery tracking..."
+                                          type="file"
+                                          accept=".pdf"
+                                          className="text-sm"
+                                          onChange={(e) => {
+                                            const file =
+                                              e.target.files?.[0] || null;
+                                            setUploadedFiles((prev) => ({
+                                              ...prev,
+                                              [`${order.id}-${stage.id}`]: file,
+                                            }));
+                                          }}
+                                        />
+                                        <Button variant="outline" size="sm">
+                                          <Upload className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      {stage.requiresBlockchain && (
+                                        <Button
+                                          variant="outline"
+                                          onClick={() =>
+                                            updateRecordHash(order.id, stage.id)
+                                          }
+                                          disabled={isLoading[stage.id]}
+                                        >
+                                          <Hash className="h-4 w-4 mr-2" />
+                                          Record on Blockchain
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Stage 4: Final Delivery */}
+                                {index === 4 && (
+                                  <div className="space-y-4">
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <Label className="text-sm font-medium">
+                                          Final Delivery Shipping Label
+                                        </Label>
+                                        <Input
+                                          placeholder="Enter final delivery shipping label..."
                                           className="font-mono text-sm"
                                         />
                                       </div>
                                     </div>
                                     <div className="flex gap-2">
-                                      <Button
-                                        className="bg-blue-600 hover:bg-blue-700"
-                                        onClick={() => {
-                                          if (!fedexTrackings[stage.id]) {
-                                            return alert(
-                                              "Please paste FedEx tracking first"
-                                            );
-                                          }
-                                          sendEmail(
-                                            order.id,
-                                            stage.id,
-                                            stage.title,
-                                            stage.description,
-                                            fedexTrackings[stage.id]
-                                          );
-                                          alert("Email sent successfully");
-                                        }}
-                                      >
-                                        <Mail className="h-4 w-4 mr-2" />
-                                        Send Email Confirmation
-                                      </Button>
                                       <Button className="bg-purple-600 hover:bg-purple-700">
                                         <Hash className="h-4 w-4 mr-2" />
-                                        Record on Blockchain
+                                        Send Email and Record on Blockchain
                                       </Button>
-                                      {/* <Button variant="outline">
-                                        <ExternalLink className="h-4 w-4 mr-2" />
-                                        View Blockchain Entry
-                                      </Button> */}
                                     </div>
                                   </div>
                                 )}

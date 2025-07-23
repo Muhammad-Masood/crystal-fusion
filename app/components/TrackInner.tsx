@@ -1,137 +1,127 @@
 "use client";
-import type React from "react";
-
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Search,
-  QrCode,
   Package,
-  Plane,
   FlaskConical,
-  Factory,
-  Settings,
   Truck,
-  CheckCircle,
-  Clock,
-  ArrowLeft,
-  ExternalLink,
-  MapPin,
-  Calendar,
   Shield,
+  CheckCircle,
   Camera,
-  Printer,
+  ExternalLink,
 } from "lucide-react";
-import { QRScanner } from "./QRScanner";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Order } from "@/lib/interfaces";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
-// Lazy-load QRScanner to avoid SSR issues
-// const QRScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
+import { useSearchParams } from "next/navigation";
+import { Order } from "@/lib/interfaces";
+import { contractReadOnly } from "@/lib/utils";
+import { QRScanner } from "./QRScanner";
+import { markOrderAsReceived } from "../server";
 
 export function TrackInner({ orders }: { orders: Order[] }) {
   const params = useSearchParams();
-  const router = useRouter();
-
   const [orderID, setOrderID] = useState<number | null>(null);
   const [txHash, setTxHash] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [orderDetails, setOrderDetails] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isReceived, setIsReceived] = useState<boolean | null>(null);
 
-  // On initial load, parse from URL if exists
+  const formattedDate = (ts: number) =>
+    new Date(ts * 1000).toLocaleString("en-US");
+
+  const fetchOrderDetails = async (id: number) => {
+    const order = orders.find((o) => o.id === id);
+    if (order) {
+      setOrderDetails(order);
+      setOrderID(id);
+      const received = await contractReadOnly.isOrderReceived(BigInt(id));
+      setIsReceived(received);
+    } else {
+      alert("Order not found.");
+    }
+  };
+
   useEffect(() => {
     const id = params.get("orderID");
-    const txHash = params.get("txHash");
-    if (id && txHash) {
-      setOrderID(parseInt(id));
-      setTxHash(txHash);
-      const order = orders.find((order) => order.id == parseInt(id));
-      console.log("Order: ", order);
-      if (order) {
-        setOrderDetails(order);
-      }
+    const hash = params.get("txHash");
+    if (id && hash) {
+      fetchOrderDetails(Number(id));
+      setTxHash(hash);
     }
   }, [params]);
 
+  const handleTrackingInput = async () => {
+    if (!orderID) return;
+    setIsLoading(true);
+    await fetchOrderDetails(orderID);
+    setIsLoading(false);
+  };
+
   const handleScanResult = (data: string) => {
     try {
-      console.log("On scan data: ", data);
       const url = new URL(data);
       const id = url.searchParams.get("orderID");
-      const txHash = url.searchParams.get("txHash");
-      if (!id || !txHash) {
+      const hash = url.searchParams.get("txHash");
+      if (id && hash) {
+        fetchOrderDetails(Number(id));
+        setTxHash(hash);
+        setShowScanner(false);
+      } else {
         alert("Invalid QR code.");
-        return;
       }
-      setOrderID(parseInt(id));
-      setTxHash(txHash);
-      setShowScanner(false);
-    } catch (error) {
+    } catch {
       alert("Failed to parse QR code.");
     }
   };
 
-  const handleTrackingInput = () => {
+  const markAsReceived = async () => {
+    if (!orderDetails) return;
     try {
-      const order = orders.find((order) => order.id == orderID);
-      console.log("Order: ", order);
-      if (order) {
-        console.log("updada");
-        setOrderDetails(order);
-      }
-      console.log("ORDER DETAULS: ", orderDetails, orderDetails?.csShipping);
-    } catch (error) {
-      alert("Failed to handle tracking input.");
+      await markOrderAsReceived(orderDetails.id);
+      setIsReceived(true);
+      alert("Order marked as received.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to mark as received.");
     }
   };
 
-  const formattedDate = (ts: number) => new Date(ts * 1000).toLocaleString();
-  console.log(orderDetails ? orderDetails.timestamp : "noooooo");
-
   const steps = [
     {
-      id: "step-1",
       label: "Customer Pickup",
       hash: orderDetails?.csShipping?.csShippingHash || "",
       timestamp: orderDetails?.csShipping?.timestamp || 0,
       icon: <Package className="w-5 h-5" />,
     },
     {
-      id: "step-2",
       label: "Quality Analysis",
       hash: orderDetails?.analysis?.analysisHash || "",
       timestamp: orderDetails?.analysis?.timestamp || 0,
       icon: <FlaskConical className="w-5 h-5" />,
     },
     {
-      id: "step-3",
       label: "Crystal Fusion Pickup",
       hash: orderDetails?.cfShipping?.cfShippingHash || "",
       timestamp: orderDetails?.cfShipping?.timestamp || 0,
       icon: <Truck className="w-5 h-5" />,
     },
     {
-      id: "step-4",
       label: "Certificate Issued",
       hash: orderDetails?.certificate?.certificatesHashes || [""],
       timestamp: orderDetails?.certificate?.timestamp || 0,
       icon: <Shield className="w-5 h-5" />,
     },
     {
-      id: "step-5",
       label: "Shipped to Belgium",
       hash: orderDetails?.shippingTwo?.shippingTwoHash || "",
       timestamp: orderDetails?.shippingTwo?.timestamp || 0,
       icon: <Truck className="w-5 h-5" />,
     },
     {
-      id: "step-6",
       label: "Final Delivery",
       hash: orderDetails?.finalDelivery?.finalDeliveryHash || "",
       timestamp: orderDetails?.finalDelivery?.timestamp || 0,
@@ -147,14 +137,13 @@ export function TrackInner({ orders }: { orders: Order[] }) {
         </CardHeader>
 
         <CardContent>
-          {/* QR Scanner Toggle */}
-          <div className="text-center mb-4">
+          {/* QR Scanner */}
+          <div className="mb-4 text-center">
             <Button
               variant="outline"
-              className="w-full md:w-auto text-blue-600 border-blue-600 hover:bg-blue-50"
-              onClick={() => setShowScanner((prev) => !prev)}
+              onClick={() => setShowScanner(!showScanner)}
             >
-              <Camera className="h-5 w-5 mr-2" />
+              <Camera className="w-4 h-4 mr-2" />
               {showScanner ? "Close Scanner" : "Scan QR Code"}
             </Button>
           </div>
@@ -166,11 +155,11 @@ export function TrackInner({ orders }: { orders: Order[] }) {
             />
           )}
 
-          {/* QR Hash + Manual Input */}
           {!orderDetails && (
-            <div className="flex gap-2 flex-col md:flex-row mb-4">
+            <div className="flex flex-col md:flex-row gap-2 mb-4">
               <Input
                 placeholder="Enter Order ID"
+                type="number"
                 value={orderID || ""}
                 onChange={(e) => setOrderID(Number(e.target.value))}
               />
@@ -178,197 +167,125 @@ export function TrackInner({ orders }: { orders: Order[] }) {
             </div>
           )}
 
-          {/* Timestamp Badge */}
+          {isLoading && <p className="text-sm text-gray-600">Loading...</p>}
+
           {orderDetails && (
-            <Badge className="mb-4">
-              Created: {formattedDate(orderDetails.timestamp)}
-            </Badge>
-          )}
+            <>
+              <Badge className="mb-4">
+                Created: {formattedDate(orderDetails.timestamp)}
+              </Badge>
 
-          {/* Loading State */}
-          {isLoading && <p className="text-sm">Loading…</p>}
-
-          {/* Timeline Steps */}
-          {orderDetails && (
-            <div className="space-y-4">
-              {steps.map((step, index) => (
-                <Card key={index} className="p-4 border-l-4 border-blue-500">
-                  <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
-                    <div className="flex items-center gap-2">
-                      {step.icon}
-                      <span className="font-medium">{step.label}</span>
+              <div className="space-y-4">
+                {steps.map((step, i) => (
+                  <Card key={i} className="p-4 border-l-4 border-blue-600">
+                    <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-2">
+                      <div className="flex items-center gap-2">
+                        {step.icon}
+                        <span className="font-medium">{step.label}</span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {step.timestamp
+                          ? formattedDate(step.timestamp)
+                          : "Not completed"}
+                      </span>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {step.timestamp && step.timestamp > 0
-                        ? formattedDate(step.timestamp)
-                        : "Not completed"}
-                    </div>
-                  </div>
-
-                  <div className="mt-2 text-sm text-gray-500 break-words">
-                    {step.hash ? (
-                      step.id === "step-2" ? (
+                    <div className="mt-2 text-sm break-words text-gray-600">
+                      {Array.isArray(step.hash) ? (
+                        step.hash.map((h, i) => (
+                          <Button
+                            key={i}
+                            variant="link"
+                            size="sm"
+                            onClick={() => window.open(h, "_blank")}
+                            className="p-0 text-blue-600"
+                          >
+                            {h} <ExternalLink className="w-4 h-4 ml-1" />
+                          </Button>
+                        ))
+                      ) : step.hash ? (
                         <Button
                           variant="link"
                           size="sm"
-                          className="p-0 text-blue-600 break-words whitespace-normal cursor-pointer"
                           onClick={() =>
                             window.open(step.hash as string, "_blank")
                           }
+                          className="p-0 text-blue-600"
                         >
-                          <span className="break-all">{step.hash}</span>
-                          <ExternalLink className="w-4 h-4 ml-1" />
+                          {step.hash} <ExternalLink className="w-4 h-4 ml-1" />
                         </Button>
-                      ) : step.id === "step-4" ? (
-                        <div className="flex flex-wrap gap-1">
-                          {(step.hash as string[]).map((hash, index) => (
-                            <Button
-                              key={index}
-                              variant="link"
-                              size="sm"
-                              className="p-0 text-blue-600 whitespace-normal break-words cursor-pointer"
-                              onClick={() => window.open(hash, "_blank")}
-                            >
-                              <span className="break-all">{hash}</span>
-                              <ExternalLink className="w-4 h-4 ml-1" />
-                            </Button>
-                          ))}
-                        </div>
                       ) : (
-                        <p className="p-0 text-blue-600 break-words">
-                          Hash - <span className="break-all">{step.hash}</span>
-                        </p>
+                        "Pending"
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {txHash && (
+                <div className="mt-4">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() =>
+                      window.open(
+                        `https://sepolia.arbiscan.io/tx/${txHash}`,
+                        "_blank"
                       )
-                    ) : (
-                      <span>Pending</span>
-                    )}
-                    {txHash && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="p-0 text-blue-600"
-                        onClick={() =>
-                          window.open(
-                            `https://sepolia.arbiscan.io/tx/${txHash}`,
-                            "_blank"
-                          )
-                        }
-                      >
-                        {txHash}
-                        <ExternalLink className="w-4 h-4 ml-1" />
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+                    }
+                    className="p-0 text-blue-600"
+                  >
+                    View TX: {txHash}
+                    <ExternalLink className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
 
-          {/* PDF Report Button */}
-          {orderDetails && (
-            // <Button
-            //   className="mt-6 w-full"
-            //   onClick={() => {
-            //     // Replace this with actual PDF logic
-            //     alert("PDF generation coming soon!");
-            //   }}
-            // >
-            //   Download Full Report (PDF)
-            // </Button>
-            // <Button
-            //   onClick={() => window.print()}
-            //   variant="outline"
-            //   className="border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-            // >
-            //   <Printer className="h-4 w-4 mr-2" />
-            //   Print
-            // </Button>
-            <Button
-              className="mt-6 w-full"
-              onClick={() => {
-                const doc = new jsPDF();
-                doc.setFontSize(16);
-                doc.text("Order Tracking Report", 14, 20);
+              {/* Action buttons */}
+              <div className="mt-6 space-y-2">
+                {!isReceived && (
+                  <Button onClick={markAsReceived} className="w-full">
+                    Confirm Package Received
+                  </Button>
+                )}
 
-                doc.setFontSize(12);
-                doc.text(`Order ID: ${orderDetails.id}`, 14, 30);
-                doc.text(
-                  `Created: ${formattedDate(orderDetails.timestamp)}`,
-                  14,
-                  38
-                );
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    const doc = new jsPDF();
+                    doc.setFontSize(16);
+                    doc.text("Order Tracking Report", 14, 20);
 
-                const stepData = [
-                  {
-                    label: "Customer Pickup",
-                    hash: orderDetails.csShipping?.csShippingHash || "Pending",
-                    timestamp: orderDetails.csShipping?.timestamp
-                      ? formattedDate(orderDetails.csShipping.timestamp)
-                      : "Pending",
-                  },
-                  {
-                    label: "Quality Analysis",
-                    hash: orderDetails.analysis?.analysisHash || "Pending",
-                    timestamp: orderDetails.analysis?.timestamp
-                      ? formattedDate(orderDetails.analysis.timestamp)
-                      : "Pending",
-                  },
-                  {
-                    label: "Crystal Fusion Pickup",
-                    hash: orderDetails.cfShipping?.cfShippingHash || "Pending",
-                    timestamp: orderDetails.cfShipping?.timestamp
-                      ? formattedDate(orderDetails.cfShipping.timestamp)
-                      : "Pending",
-                  },
-                  {
-                    label: "Certificate Issued",
-                    hash:
-                      orderDetails.certificate?.certificatesHashes?.length > 0
-                        ? orderDetails.certificate.certificatesHashes[
-                            orderDetails.certificate.certificatesHashes.length -
-                              1
-                          ]
-                        : "Pending",
-                    timestamp: orderDetails.certificate?.timestamp
-                      ? formattedDate(orderDetails.certificate.timestamp)
-                      : "Pending",
-                  },
-                  {
-                    label: "Shipped to Belgium",
-                    hash:
-                      orderDetails.shippingTwo?.shippingTwoHash || "Pending",
-                    timestamp: orderDetails.shippingTwo?.timestamp
-                      ? formattedDate(orderDetails.shippingTwo.timestamp)
-                      : "Pending",
-                  },
-                  {
-                    label: "Final Delivery",
-                    hash:
-                      orderDetails.finalDelivery?.finalDeliveryHash ||
-                      "Pending",
-                    timestamp: orderDetails.finalDelivery?.timestamp
-                      ? formattedDate(orderDetails.finalDelivery.timestamp)
-                      : "Pending",
-                  },
-                ];
+                    doc.setFontSize(12);
+                    doc.text(`Order ID: ${orderDetails.id}`, 14, 30);
+                    doc.text(
+                      `Created: ${formattedDate(orderDetails.timestamp)}`,
+                      14,
+                      38
+                    );
 
-                autoTable(doc, {
-                  startY: 45,
-                  head: [["Step", "Transaction Hash", "Timestamp"]],
-                  body: stepData.map((step) => [
-                    step.label,
-                    step.hash,
-                    step.timestamp,
-                  ]),
-                  styles: { fontSize: 10 },
-                  headStyles: { fillColor: [22, 119, 255] },
-                });
+                    const rows = steps.map((s) => [
+                      s.label,
+                      Array.isArray(s.hash)
+                        ? s.hash.join(", ")
+                        : s.hash || "Pending",
+                      s.timestamp ? formattedDate(s.timestamp) : "Pending",
+                    ]);
 
-                doc.save(`Order_${orderDetails.id}_Report.pdf`);
-              }}
-            >
-              Download Full Report (PDF)
-            </Button>
+                    autoTable(doc, {
+                      startY: 45,
+                      head: [["Step", "Transaction Hash", "Timestamp"]],
+                      body: rows,
+                      styles: { fontSize: 10 },
+                      headStyles: { fillColor: [22, 119, 255] },
+                    });
+
+                    doc.save(`Order_${orderDetails.id}_Report.pdf`);
+                  }}
+                >
+                  Download Full Report (PDF)
+                </Button>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
