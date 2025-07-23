@@ -268,7 +268,11 @@ export default function AnalysisForm() {
 
                 <div
                   ref={chartRef}
-                  className="bg-gray-50 p-4 rounded shadow mb-6 w-full max-w-sm mx-auto"
+                  className="p-4 rounded shadow mb-6 w-full max-w-sm mx-auto"
+                  style={{
+                    backgroundColor: "#ffffff", // ✅ safe RGB color
+                    color: "#000000", // ✅ safe text color
+                  }}
                 >
                   <Pie data={chartData} />
                 </div>
