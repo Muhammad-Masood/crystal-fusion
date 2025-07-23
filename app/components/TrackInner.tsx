@@ -171,9 +171,15 @@ export function TrackInner({ orders }: { orders: Order[] }) {
 
           {orderDetails && (
             <>
-              <Badge className="mb-4">
-                Created: {formattedDate(orderDetails.timestamp)}
-              </Badge>
+              <div className="flex flex-col md:flex-row gap-2">
+                <Badge className="mb-4">
+                  Created: {formattedDate(orderDetails.timestamp)}
+                </Badge>
+
+                <Badge className="mb-4">
+                  Order Status {isReceived ? "Received" : "Not Received"}
+                </Badge>
+              </div>
 
               <div className="space-y-4">
                 {steps.map((step, i) => (
