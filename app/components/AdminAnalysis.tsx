@@ -66,9 +66,23 @@ export default function AnalysisForm() {
     const chartEl = chartRef.current;
     if (!chartEl) return;
 
+    console.log(window.getComputedStyle(chartEl));
     setIsLoading(true);
     try {
-      const canvas = await html2canvas(chartEl);
+      // const canvas = await html2canvas(chartEl);
+      const canvas = await html2canvas(chartEl, {
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        ignoreElements: (element) => {
+          // fallback if any element has oklch color
+          const styles = window.getComputedStyle(element);
+          return (
+            styles.color?.includes("oklch") ||
+            styles.backgroundColor?.includes("oklch")
+          );
+        },
+      });
+
       const imgData = canvas.toDataURL("image/png");
 
       const pdf = new jsPDF();
