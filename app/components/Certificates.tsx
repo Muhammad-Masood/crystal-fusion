@@ -84,10 +84,10 @@ export function CertificatesManagement({
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<{ [stageId: string]: boolean }>({
-    "step-1": false,
+    // "step-1": false,
     "step-2": false,
     "step-3": false,
-    "step-4": false,
+    // "step-4": false,
   });
   const [uploadedFiles, setUploadedFiles] = useState<{
     [key: string]: File | null;
@@ -117,13 +117,13 @@ export function CertificatesManagement({
   ];
 
   const steps: CertificateStep[] = [
-    {
-      id: "step-1",
-      title: "Product Analysis by Crystal Fusion",
-      description: "Upload analysis certificate to record hash on blockchain",
-      icon: <FlaskConical className="h-4 w-4" />,
-      fileUploaded: true,
-    },
+    // {
+    //   id: "step-1",
+    //   title: "Product Analysis by Crystal Fusion",
+    //   description: "Upload analysis certificate to record hash on blockchain",
+    //   icon: <FlaskConical className="h-4 w-4" />,
+    //   fileUploaded: true,
+    // },
     {
       id: "step-2",
       title: "Certificate from Production Unit 2",
@@ -138,13 +138,13 @@ export function CertificatesManagement({
       icon: <Truck className="h-4 w-4" />,
       fileUploaded: true,
     },
-    {
-      id: "step-4",
-      title: "Receiving the diamond and certificate in Belgium",
-      description: "Upload certificate to record hash on blockchain",
-      icon: <MapPin className="h-4 w-4" />,
-      fileUploaded: true,
-    },
+    // {
+    //   id: "step-4",
+    //   title: "Receiving the diamond and certificate in Belgium",
+    //   description: "Upload certificate to record hash on blockchain",
+    //   icon: <MapPin className="h-4 w-4" />,
+    //   fileUploaded: true,
+    // },
   ];
 
   const toggleOrderExpansion = (orderId: string) => {
@@ -186,10 +186,7 @@ export function CertificatesManagement({
         chain: arbitrumSepolia,
         client: client,
       });
-      const methodAbi =
-        stepId == "step-1"
-          ? "function updateAnalysisHASH(uint256 id, string _hash)"
-          : "function updateCertificateHASH(uint256 id, string _hash)";
+      const methodAbi = "function updateCertificateHASH(uint256 id, string _hash)";
       const transaction = prepareContractCall({
         contract,
         method: methodAbi,
@@ -516,7 +513,7 @@ export function CertificatesManagement({
                                 )} */}
 
                                 {/* Step 2: Certificate from Production Unit 2 */}
-                                {index === 1 && (
+                                {index === 0 && (
                                   <div className="space-y-4">
                                     <div className="space-y-2">
                                       <Label className="text-sm font-medium">
@@ -557,7 +554,7 @@ export function CertificatesManagement({
                                 )}
 
                                 {/* Step 3: Shipment to Belgium */}
-                                {index === 2 && (
+                                {index === 1 && (
                                   <div className="space-y-4">
                                     <div className="space-y-2">
                                       <Label className="text-sm font-medium">
