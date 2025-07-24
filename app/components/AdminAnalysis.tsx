@@ -284,16 +284,6 @@ export default function AnalysisForm() {
                   ))}
                 </div>
 
-                {/* <div
-                  ref={chartRef}
-                  className="p-4 rounded shadow mb-6 w-full max-w-sm mx-auto"
-                  style={{
-                    backgroundColor: "#ffffff", // ✅ safe RGB color
-                    color: "#000000", // ✅ safe text color
-                  }}
-                >
-                  <Pie data={chartData} />
-                </div> */}
                 <Pie ref={chartRef} data={chartData} />
 
                 <div className="text-center">
@@ -301,20 +291,6 @@ export default function AnalysisForm() {
                     {isLoading ? "Uploading..." : "Generate & Upload PDF"}
                   </Button>
                 </div>
-
-                {ipfsUrl && (
-                  <p className="mt-4 text-sm text-green-700 text-center">
-                    Uploaded to IPFS:{" "}
-                    <a
-                      href={`https://ipfs.io/ipfs/${ipfsUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      View PDF
-                    </a>
-                  </p>
-                )}
               </div>
             </main>
           </div>
