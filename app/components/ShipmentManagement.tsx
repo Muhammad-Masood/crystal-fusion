@@ -546,7 +546,7 @@ export function ShipmentManagement({
                                     <div className="grid md:grid-cols-2 gap-4">
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          Upload Certificate (PDF)
+                                          Upload Fedex Shipping Label in Step 2
                                         </Label>
                                         <div className="flex gap-2">
                                           <Input
