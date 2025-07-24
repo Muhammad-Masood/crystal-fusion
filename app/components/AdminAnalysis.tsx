@@ -51,7 +51,8 @@ export default function AnalysisForm() {
   const [orderId, setOrderId] = useState("");
   const [ipfsUrl, setIpfsUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const chartRef = useRef(null);
+  // const chartRef = useRef(null);
+  const chartRef = useRef<any>(null);
   const activeAccount = useActiveAccount();
   const router = useRouter();
 
@@ -63,27 +64,30 @@ export default function AnalysisForm() {
     if (!orderId) return alert("Please enter a valid Order ID");
     if (!activeAccount) return alert("Please connect your wallet");
 
-    const chartEl = chartRef.current;
-    if (!chartEl) return;
+    // const chartEl = chartRef.current;
+    // if (!chartEl) return;
+    const chartInstance = chartRef.current;
+    if (!chartInstance) return;
 
-    console.log(window.getComputedStyle(chartEl));
+    // console.log(window.getComputedStyle(chartEl));
+    const canvas = chartInstance.canvas; // ✅ This is the <canvas> element
+    const imgData = canvas.toDataURL("image/png");
+    console.log("IMg data: ", imgData, canvas)
     setIsLoading(true);
     try {
       // const canvas = await html2canvas(chartEl);
-      const canvas = await html2canvas(chartEl, {
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        ignoreElements: (element) => {
-          // fallback if any element has oklch color
-          const styles = window.getComputedStyle(element);
-          return (
-            styles.color?.includes("oklch") ||
-            styles.backgroundColor?.includes("oklch")
-          );
-        },
-      });
-
-      const imgData = canvas.toDataURL("image/png");
+      // const canvas = await html2canvas(chartEl, {
+      //   useCORS: true,
+      //   backgroundColor: "#ffffff",
+      //   ignoreElements: (element) => {
+      //     // fallback if any element has oklch color
+      //     const styles = window.getComputedStyle(element);
+      //     return (
+      //       styles.color?.includes("oklch") ||
+      //       styles.backgroundColor?.includes("oklch")
+      //     );
+      //   },
+      // });
 
       const pdf = new jsPDF();
       pdf.setFontSize(18);
@@ -280,7 +284,7 @@ export default function AnalysisForm() {
                   ))}
                 </div>
 
-                <div
+                {/* <div
                   ref={chartRef}
                   className="p-4 rounded shadow mb-6 w-full max-w-sm mx-auto"
                   style={{
@@ -289,7 +293,8 @@ export default function AnalysisForm() {
                   }}
                 >
                   <Pie data={chartData} />
-                </div>
+                </div> */}
+                <Pie ref={chartRef} data={chartData} />
 
                 <div className="text-center">
                   <Button onClick={generatePDF} disabled={isLoading}>
