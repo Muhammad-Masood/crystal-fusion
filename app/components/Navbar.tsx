@@ -72,10 +72,10 @@ export const Navbar = () => {
                 Login
               </Button>
             )}
-
+            {/* 
             {isAdmin && (
               <ConnectButton client={client} chain={arbitrumSepolia} />
-            )}
+            )} */}
           </div>
 
           {/* Mobile Menu Button */}
@@ -148,11 +148,11 @@ export const Navbar = () => {
               </Button>
             )}
 
-            {isAdmin && (
+            {/* {isAdmin && (
               <div className="pt-3 px-3">
                 <ConnectButton client={client} chain={arbitrumSepolia} />
               </div>
-            )}
+            )} */}
           </div>
         )}
       </div>
