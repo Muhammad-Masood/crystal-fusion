@@ -49,12 +49,13 @@ import {
 import Link from "next/link";
 import { Order } from "@/lib/interfaces";
 import { upload } from "thirdweb/storage";
-import { client } from "@/lib/utils";
+import { client, provider } from "@/lib/utils";
 import { getContract, prepareContractCall, sendTransaction } from "thirdweb";
 import { useActiveAccount } from "thirdweb/react";
-import { contractAddress } from "@/lib/contract";
+import { contractABI, contractAddress } from "@/lib/contract";
 import { arbitrumSepolia } from "thirdweb/chains";
 import { useRouter } from "next/navigation";
+import { ethers } from "ethers";
 
 interface CertificateStep {
   id: string;
@@ -92,7 +93,7 @@ export function CertificatesManagement({
   const [uploadedFiles, setUploadedFiles] = useState<{
     [key: string]: File | null;
   }>({});
-  const activeAccount = useActiveAccount();
+  // const activeAccount = useActiveAccount();
   const router = useRouter();
 
   const overviewMetrics: OverviewMetric[] = [
@@ -124,16 +125,16 @@ export function CertificatesManagement({
     //   icon: <FlaskConical className="h-4 w-4" />,
     //   fileUploaded: true,
     // },
-    {
-      id: "step-2",
-      title: "Certificate from Production Unit 2",
-      description: "Upload certificate to record hash on blockchain",
-      icon: <Factory className="h-4 w-4" />,
-      fileUploaded: true,
-    },
+    // {
+    //   id: "step-2",
+    //   title: "Certificate from Production Unit 2",
+    //   description: "Upload certificate to record hash on blockchain",
+    //   icon: <Factory className="h-4 w-4" />,
+    //   fileUploaded: true,
+    // },
     {
       id: "step-3",
-      title: "Shipment to Belgium",
+      title: "IGI Certificate from Production Unit 2",
       description: "Certificate from Production Unit 2 to record on blockchain",
       icon: <Truck className="h-4 w-4" />,
       fileUploaded: true,
@@ -163,10 +164,10 @@ export function CertificatesManagement({
 
   const storeCertificate = async (orderId: number, stepId: string) => {
     try {
-      if (!activeAccount) {
-        alert("Please connect your wallet");
-        return;
-      }
+      // if (!activeAccount) {
+      //   alert("Please connect your wallet");
+      //   return;
+      // }
       const file = uploadedFiles[`${orderId}-${stepId}`];
       if (!file) {
         alert("Please select a file before uploading.");
@@ -180,24 +181,41 @@ export function CertificatesManagement({
         files: [file],
       });
       console.log("Uploaded uri: ", uri);
+
       // store on uri on blockchain
-      const contract = getContract({
-        address: contractAddress,
-        chain: arbitrumSepolia,
-        client: client,
-      });
-      const methodAbi = "function updateCertificateHASH(uint256 id, string _hash)";
-      const transaction = prepareContractCall({
-        contract,
-        method: methodAbi,
-        params: [BigInt(orderId), uri],
-      });
-      const { transactionHash } = await sendTransaction({
-        account: activeAccount,
-        transaction,
-      });
-      console.log("Transaction result: ", transactionHash);
-      alert(`Success! Tx: ${transactionHash}`);
+
+      const signer = new ethers.Wallet(
+        process.env.OWNER_PRIVATE_KEY!,
+        provider
+      );
+      console.log("Signer: ", signer);
+      const contract = new ethers.Contract(
+        contractAddress,
+        contractABI,
+        signer
+      );
+      const contractResult = await contract.updateCertificateHASH(
+        BigInt(orderId),
+        uri
+      );
+      // const contract = getContract({
+      //   address: contractAddress,
+      //   chain: arbitrumSepolia,
+      //   client: client,
+      // });
+      // const methodAbi =
+      //   "function updateCertificateHASH(uint256 id, string _hash)";
+      // const transaction = prepareContractCall({
+      //   contract,
+      //   method: methodAbi,
+      //   params: [BigInt(orderId), uri],
+      // });
+      // const { transactionHash } = await sendTransaction({
+      //   account: activeAccount,
+      //   transaction,
+      // });
+      console.log("Transaction result: ", contractResult.hash);
+      alert(`Success! Tx: ${contractResult.hash}`);
       router.refresh();
     } catch (err) {
       console.log("Error storing certificate: ", err);
@@ -513,7 +531,7 @@ export function CertificatesManagement({
                                 )} */}
 
                                 {/* Step 2: Certificate from Production Unit 2 */}
-                                {index === 0 && (
+                                {/* {index === 0 && (
                                   <div className="space-y-4">
                                     <div className="space-y-2">
                                       <Label className="text-sm font-medium">
@@ -550,47 +568,47 @@ export function CertificatesManagement({
                                         Record Certificate on Blockchain
                                       </Button>
                                     </div>
-                                  </div>
-                                )}
+                                  </div> */}
+                                {/* )} */}
 
                                 {/* Step 3: Shipment to Belgium */}
-                                {index === 1 && (
-                                  <div className="space-y-4">
-                                    <div className="space-y-2">
-                                      <Label className="text-sm font-medium">
-                                        Upload IGI Certificate (PDF)
-                                      </Label>
-                                      <div className="flex gap-2">
-                                        <Input
-                                          type="file"
-                                          accept=".pdf"
-                                          className="text-sm"
-                                          onChange={(e) => {
-                                            const file =
-                                              e.target.files?.[0] || null;
-                                            setUploadedFiles((prev) => ({
-                                              ...prev,
-                                              [`${order.id}-${step.id}`]: file,
-                                            }));
-                                          }}
-                                        />
-                                        <Button variant="outline" size="sm">
-                                          <Upload className="h-4 w-4" />
-                                        </Button>
-                                      </div>
+                                {/* {index === 0 && ( */}
+                                <div className="space-y-4">
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium">
+                                      Upload IGI Certificate (PDF)
+                                    </Label>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        type="file"
+                                        accept=".pdf"
+                                        className="text-sm"
+                                        onChange={(e) => {
+                                          const file =
+                                            e.target.files?.[0] || null;
+                                          setUploadedFiles((prev) => ({
+                                            ...prev,
+                                            [`${order.id}-${step.id}`]: file,
+                                          }));
+                                        }}
+                                      />
+                                      <Button variant="outline" size="sm">
+                                        <Upload className="h-4 w-4" />
+                                      </Button>
                                     </div>
-                                    <Button
-                                      className="bg-purple-600 hover:bg-purple-700"
-                                      onClick={() =>
-                                        storeCertificate(order.id, step.id)
-                                      }
-                                      disabled={isLoading[step.id]}
-                                    >
-                                      <Hash className="h-4 w-4 mr-2" />
-                                      Record on Blockchain
-                                    </Button>
                                   </div>
-                                )}
+                                  <Button
+                                    className="bg-purple-600 hover:bg-purple-700"
+                                    onClick={() =>
+                                      storeCertificate(order.id, step.id)
+                                    }
+                                    disabled={isLoading[step.id]}
+                                  >
+                                    <Hash className="h-4 w-4 mr-2" />
+                                    Email to Belgium and Record on Blockchain
+                                  </Button>
+                                </div>
+                                {/* )} */}
 
                                 {/* Step 4: Confirmation in Belgium */}
                                 {/* {index === 3 && (

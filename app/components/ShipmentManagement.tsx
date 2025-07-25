@@ -59,14 +59,15 @@ import {
 import Link from "next/link";
 import { Order, OrderFormData } from "@/lib/interfaces";
 import { QRCodeCanvas } from "qrcode.react";
-import { contractAddress } from "@/lib/contract";
+import { contractABI, contractAddress } from "@/lib/contract";
 import { useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { useRouter } from "next/navigation";
 import { getContract, prepareContractCall, sendTransaction } from "thirdweb";
 import { arbitrumSepolia } from "thirdweb/chains";
-import { client } from "@/lib/utils";
+import { client, provider } from "@/lib/utils";
 import { sendEmail } from "../server";
 import { resolveScheme, upload } from "thirdweb/storage";
+import { ethers } from "ethers";
 
 interface ShipmentStage {
   id: string;
@@ -95,7 +96,7 @@ const stages: ShipmentStage[] = [
   },
   {
     id: "stage-3",
-    title: "From Production Unit 1 to Production Unit 2",
+    title: "Carbon Enhancement to Production Unit 2",
     description: "Internal transfer between production units",
     icon: <Truck className="h-4 w-4" />,
     requiresBlockchain: false,
@@ -134,7 +135,7 @@ export function ShipmentManagement({
   // const [fedexTrackings, setFedexTrackings] = useState<{
   //   [stageId: string]: string;
   // }>({});
-  const activeAccount = useActiveAccount();
+  // const activeAccount = useActiveAccount();
   const router = useRouter();
 
   const toggleOrderExpansion = (orderId: string) => {
@@ -148,10 +149,10 @@ export function ShipmentManagement({
   const updateRecordHash = async (orderId: number, stageId: string) => {
     try {
       setIsLoading((prev) => ({ ...prev, [stageId]: true }));
-      if (!activeAccount) {
-        alert("Please connect your wallet");
-        return;
-      }
+      // if (!activeAccount) {
+      //   alert("Please connect your wallet");
+      //   return;
+      // }
       const file = uploadedFiles[`${orderId}-${stageId}`];
       if (!file) {
         alert("Please select a file before uploading.");
@@ -173,37 +174,76 @@ export function ShipmentManagement({
         client: client,
       });
       console.log("URL: ", url);
-      const contract = getContract({
-        address: contractAddress,
-        chain: arbitrumSepolia,
-        client: client,
-      });
-      const methodAbi =
-        stageId == "stage-1"
-          ? "function updatePickupShippingTracking(uint256 id, string _tracking)"
-          : stageId == "stage-2"
-            ? "function updateCFshippingLabal(uint256 id, string _tracking)"
-            : stageId == "stage-3"
-              ? "function updateShippingTwoLabal(uint256 id, string _tracking)"
-              : "function updatefinalDeliveryTracking(uint256 id, string _tracking)";
-      const transaction = prepareContractCall({
-        contract,
-        method: methodAbi,
-        params: [BigInt(orderId), url],
-      });
-      const { transactionHash } = await sendTransaction({
-        account: activeAccount,
-        transaction,
-      });
       const stage = stages.find((stage) => stage.id == stageId);
       if (!stage) return;
+      if (stageId == "stage-3") {
+        const emails = [
+          process.env.NEXT_PUBLIC_NETHERLAND_EMAIL || "test@gmail.com",
+          process.env.NEXT_PUBLIC_UNIT_2_EMAIL || "test@gmail.com",
+        ];
+
+        sendEmail(
+          orderId,
+          stage.id,
+          stage.title,
+          stage.description,
+          url,
+          emails
+        );
+        alert("Email sent successfully");
+        return;
+      }
+      const signer = new ethers.Wallet(
+        process.env.OWNER_PRIVATE_KEY!,
+        provider
+      );
+      const contract = new ethers.Contract(
+        contractAddress,
+        contractABI,
+        signer
+      );
+
+      const contractResult = stageId == "stage-1"
+        ? await contract.updatePickupShippingTracking(BigInt(orderId), url)
+        : stageId == "stage-2"
+          ? await contract.updateCFshippingLabal(BigInt(orderId), url)
+          : stageId == "stage-3"
+            ? await contract.updateShippingTwoLabal(BigInt(orderId), url)
+            : await contract.updatefinalDeliveryTracking(BigInt(orderId), url);
+
+      // const contract = getContract({
+      //   address: contractAddress,
+      //   chain: arbitrumSepolia,
+      //   client: client,
+
+      // });
+
+      // const methodAbi =
+      //   stageId == "stage-1"
+      //     ? "function updatePickupShippingTracking(uint256 id, string _tracking)"
+      //     : stageId == "stage-2"
+      //       ? "function updateCFshippingLabal(uint256 id, string _tracking)"
+      //       : stageId == "stage-3"
+      //         ? "function updateShippingTwoLabal(uint256 id, string _tracking)"
+      //         : "function updatefinalDeliveryTracking(uint256 id, string _tracking)";
+      // const transaction = prepareContractCall({
+      //   contract,
+      //   method: methodAbi,
+      //   params: [BigInt(orderId), url],
+      // });
+      // const { transactionHash } = await sendTransaction({
+      //   account: activeAccount,
+      //   transaction,
+      // });
+      // const stage = stages.find((stage) => stage.id == stageId);
       if (stageId == "stage-1" || stageId == "stage-5") {
         const res = await fetch(orderData.qrHash);
         const orderFormData: OrderFormData = await res.json();
         console.log(orderFormData);
-        sendEmail(orderId, stage.id, stage.title, stage.description, url, [orderFormData.email]);
-      }
-      else if (stageId == "stage-2") {
+        sendEmail(orderId, stage.id, stage.title, stage.description, url, [
+          orderFormData.email,
+        ]);
+      } else if (stageId == "stage-2") {
         const unit1Email = [process.env.NEXT_PUBLIC_UNIT_1_EMAIL!];
         sendEmail(
           orderId,
@@ -214,22 +254,9 @@ export function ShipmentManagement({
           unit1Email
         );
         alert("Email sent successfully");
-      } else if (stageId == "stage-3") {
-        const adminEmails =
-          process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(",") ?? [];
-
-        sendEmail(
-          orderId,
-          stage.id,
-          stage.title,
-          stage.description,
-          url,
-          adminEmails
-        );
-        alert("Email sent successfully");
       }
-      console.log("Transaction result: ", transactionHash);
-      alert(`Success! Transaction hash: ${transactionHash}`);
+      console.log("Transaction result: ", contractResult.hash);
+      alert(`Success! Transaction hash: ${contractResult.hash}`);
       router.refresh();
     } catch (error: any) {
       console.log("Error updating record: ", error);
@@ -577,6 +604,7 @@ export function ShipmentManagement({
                                             updateRecordHash(order.id, stage.id)
                                           }
                                           disabled={isLoading[stage.id]}
+                                          className="bg-purple-600 hover:bg-purple-700"
                                         >
                                           <Hash className="h-4 w-4 mr-2" />
                                           Send Email and Record on Blockchain
@@ -622,6 +650,7 @@ export function ShipmentManagement({
                                           onClick={() =>
                                             updateRecordHash(order.id, stage.id)
                                           }
+                                          className="bg-purple-600 hover:bg-purple-700"
                                           disabled={isLoading[stage.id]}
                                         >
                                           <Hash className="h-4 w-4 mr-2" />
@@ -646,20 +675,29 @@ export function ShipmentManagement({
                                         step - Internal transfer only
                                       </p>
                                     </div>
-                                    {/* <div className="space-y-2">
+                                    <div className="space-y-2">
                                       <Label className="text-sm font-medium">
-                                        Upload Label Hash (Optional)
+                                        Shipment Label
                                       </Label>
                                       <div className="flex gap-2">
                                         <Input
-                                          placeholder="Paste label hash..."
-                                          className="font-mono text-sm"
+                                          type="file"
+                                          accept=".pdf"
+                                          className="text-sm"
+                                          onChange={(e) => {
+                                            const file =
+                                              e.target.files?.[0] || null;
+                                            setUploadedFiles((prev) => ({
+                                              ...prev,
+                                              [`${order.id}-${stage.id}`]: file,
+                                            }));
+                                          }}
                                         />
                                         <Button variant="outline" size="sm">
                                           <Upload className="h-4 w-4" />
                                         </Button>
                                       </div>
-                                    </div> */}
+                                    </div>
                                     <Button
                                       className="bg-green-600 hover:bg-green-700"
                                       onClick={() =>
@@ -667,7 +705,7 @@ export function ShipmentManagement({
                                       }
                                     >
                                       <CheckCircle className="h-4 w-4 mr-2" />
-                                      Mark as Sent
+                                      Notify Carbon Enhancement
                                     </Button>
                                   </div>
                                 )}
@@ -708,6 +746,7 @@ export function ShipmentManagement({
                                             updateRecordHash(order.id, stage.id)
                                           }
                                           disabled={isLoading[stage.id]}
+                                          className="bg-purple-600 hover:bg-purple-700"
                                         >
                                           <Hash className="h-4 w-4 mr-2" />
                                           Record on Blockchain
@@ -749,7 +788,8 @@ export function ShipmentManagement({
                                     <div className="flex gap-2">
                                       <Button className="bg-purple-600 hover:bg-purple-700">
                                         <Hash className="h-4 w-4 mr-2" />
-                                        Send Email and Record on Blockchain
+                                        Email to Customer and Record on
+                                        Blockchain
                                       </Button>
                                     </div>
                                   </div>
