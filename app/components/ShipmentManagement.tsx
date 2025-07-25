@@ -599,12 +599,12 @@ export function ShipmentManagement({
                                     <div className="flex gap-2">
                                       {stage.requiresBlockchain && (
                                         <Button
-                                          variant="outline"
+                                          // variant="outline"
                                           onClick={() =>
                                             updateRecordHash(order.id, stage.id)
                                           }
                                           disabled={isLoading[stage.id]}
-                                          className="bg-purple-600 hover:bg-purple-700"
+                                          className="bg-purple-600 hover:bg-purple-700 text-white"
                                         >
                                           <Hash className="h-4 w-4 mr-2" />
                                           Send Email and Record on Blockchain
@@ -646,11 +646,11 @@ export function ShipmentManagement({
                                     <div className="flex gap-2">
                                       {stage.requiresBlockchain && (
                                         <Button
-                                          variant="outline"
+                                          // variant="outline"
                                           onClick={() =>
                                             updateRecordHash(order.id, stage.id)
                                           }
-                                          className="bg-purple-600 hover:bg-purple-700"
+                                          className="bg-purple-600 hover:bg-purple-700 text-white"
                                           disabled={isLoading[stage.id]}
                                         >
                                           <Hash className="h-4 w-4 mr-2" />
@@ -741,12 +741,12 @@ export function ShipmentManagement({
                                     <div className="flex gap-2">
                                       {stage.requiresBlockchain && (
                                         <Button
-                                          variant="outline"
+                                          // variant="outline"
                                           onClick={() =>
                                             updateRecordHash(order.id, stage.id)
                                           }
                                           disabled={isLoading[stage.id]}
-                                          className="bg-purple-600 hover:bg-purple-700"
+                                          className="bg-purple-600 hover:bg-purple-700 text-white"
                                         >
                                           <Hash className="h-4 w-4 mr-2" />
                                           Record on Blockchain
