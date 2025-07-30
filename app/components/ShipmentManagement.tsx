@@ -573,7 +573,7 @@ export function ShipmentManagement({
                                     <div className="grid md:grid-cols-2 gap-4">
                                       <div className="space-y-2">
                                         <Label className="text-sm font-medium">
-                                          Upload Fedex Shipping Label in Step 2
+                                          Upload Fedex Shipping Label
                                         </Label>
                                         <div className="flex gap-2">
                                           <Input
